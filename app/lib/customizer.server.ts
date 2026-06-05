@@ -18,6 +18,16 @@ export type CustomizerProduct = {
   status: string;
 };
 
+export type CustomizerProductSetting = {
+  id: string;
+  productSettingId: string;
+  productId: string;
+  imageId: string;
+  label: string;
+  inputType: string;
+  status: string;
+};
+
 const fallbackImages: CustomizerImage[] = [
   {
     id: "logo-01",
@@ -46,11 +56,24 @@ const fallbackProducts: CustomizerProduct[] = [
   },
 ];
 
+const fallbackSettings: CustomizerProductSetting[] = [
+  {
+    id: "setting-01",
+    productSettingId: "product-01",
+    productId: "product-01",
+    imageId: "logo-01",
+    label: "ONPRIロゴ",
+    inputType: "registered_image",
+    status: "検証用",
+  },
+];
+
 export type CustomizerDataSource = "firestore" | "fallback";
 
 export type CustomizerDataResult = {
   images: CustomizerImage[];
   products: CustomizerProduct[];
+  settings: CustomizerProductSetting[];
   source: CustomizerDataSource;
 };
 
@@ -68,6 +91,16 @@ export type CreateCustomizerProductInput = {
   productId: string;
   productTitle: string;
   brandId: string;
+  status: string;
+};
+
+export type CreateCustomizerProductSettingInput = {
+  id: string;
+  productSettingId: string;
+  productId: string;
+  imageId: string;
+  label: string;
+  inputType: string;
   status: string;
 };
 
@@ -142,6 +175,44 @@ export async function getCustomizerProducts(): Promise<CustomizerProduct[]> {
   }
 }
 
+
+export async function getCustomizerSettings(): Promise<CustomizerProductSetting[]> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return fallbackSettings;
+  }
+
+  try {
+    const snapshot = await db
+      .collection("customizer_product_settings")
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+
+    if (snapshot.empty) {
+      return fallbackSettings;
+    }
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        productSettingId: String(data.productSettingId ?? ""),
+        productId: String(data.productId ?? ""),
+        imageId: String(data.imageId ?? ""),
+        label: String(data.label ?? ""),
+        inputType: String(data.inputType ?? ""),
+        status: String(data.status ?? ""),
+      };
+    });
+  } catch (error) {
+    console.error("Failed to fetch customizer_product_settings from Firestore:", error);
+    return fallbackSettings;
+  }
+}
+
 export async function getCustomizerData(): Promise<CustomizerDataResult> {
   const db = getFirebaseDb();
 
@@ -149,18 +220,21 @@ export async function getCustomizerData(): Promise<CustomizerDataResult> {
     return {
       images: fallbackImages,
       products: fallbackProducts,
+      settings: fallbackSettings,
       source: "fallback",
     };
   }
 
-  const [images, products] = await Promise.all([
+  const [images, products, settings] = await Promise.all([
     getCustomizerImages(),
     getCustomizerProducts(),
+    getCustomizerSettings(),
   ]);
 
   return {
     images,
     products,
+    settings,
     source: "firestore",
   };
 }
@@ -257,6 +331,59 @@ export async function createCustomizerProduct(
     return { ok: true };
   } catch (error) {
     console.error("Failed to create customizer_product in Firestore:", error);
+
+    return {
+      ok: false,
+      message: "Firestoreへの登録に失敗しました。",
+    };
+  }
+}
+
+export async function createCustomizerProductSetting(
+  input: CreateCustomizerProductSettingInput,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return {
+      ok: false,
+      message: "Firebase接続情報が未設定のため、登録できません。",
+    };
+  }
+
+  const id = input.id.trim();
+  const productSettingId = input.productSettingId.trim();
+  const productId = input.productId.trim();
+  const imageId = input.imageId.trim();
+  const label = input.label.trim();
+  const inputType = input.inputType.trim();
+  const status = input.status.trim();
+
+  if (!id || !productSettingId || !productId || !imageId || !label || !inputType || !status) {
+    return {
+      ok: false,
+      message: "ID、設定ID、対象商品ID、画像ID、表示名、入力タイプ、状態は必須です。",
+    };
+  }
+
+  try {
+    await db.collection("customizer_product_settings").doc(id).set(
+      {
+        productSettingId,
+        productId,
+        imageId,
+        label,
+        inputType,
+        status,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      },
+      { merge: true },
+    );
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Failed to create customizer_product_setting in Firestore:", error);
 
     return {
       ok: false,

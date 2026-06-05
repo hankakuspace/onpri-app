@@ -6,6 +6,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   createCustomizerImage,
   createCustomizerProduct,
+  createCustomizerProductSetting,
   getCustomizerData,
 } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
@@ -63,6 +64,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
   }
 
+  if (intent === "create-customizer-product-setting") {
+    const result = await createCustomizerProductSetting({
+      id: String(formData.get("id") ?? ""),
+      productSettingId: String(formData.get("productSettingId") ?? ""),
+      productId: String(formData.get("productId") ?? ""),
+      imageId: String(formData.get("imageId") ?? ""),
+      label: String(formData.get("label") ?? ""),
+      inputType: String(formData.get("inputType") ?? ""),
+      status: String(formData.get("status") ?? ""),
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return {
+      ok: true,
+      message: "商品別カスタマイズ設定を保存しました。",
+    };
+  }
+
   return {
     ok: false,
     message: "未対応の操作です。",
@@ -70,7 +92,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CustomizerPage() {
-  const { images, products, source } = useLoaderData<typeof loader>();
+  const { images, products, settings, source } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -210,6 +232,78 @@ export default function CustomizerPage() {
                 <s-table-cell>{product.productTitle}</s-table-cell>
                 <s-table-cell>{product.brandId}</s-table-cell>
                 <s-table-cell>{product.status}</s-table-cell>
+              </s-table-row>
+            ))}
+          </s-table-body>
+        </s-table>
+      </s-section>
+
+      <s-section heading="商品別カスタマイズ設定を追加">
+        <Form method="post">
+          <input type="hidden" name="intent" value="create-customizer-product-setting" />
+
+          <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
+            <label>
+              <div>ID</div>
+              <input name="id" defaultValue="setting-02" placeholder="例: setting-02" required />
+            </label>
+
+            <label>
+              <div>設定ID</div>
+              <input name="productSettingId" defaultValue="product-02" placeholder="例: product-02" required />
+            </label>
+
+            <label>
+              <div>対象商品ID</div>
+              <input name="productId" defaultValue="product-02" placeholder="例: product-02" required />
+            </label>
+
+            <label>
+              <div>画像ID</div>
+              <input name="imageId" defaultValue="logo-02" placeholder="例: logo-02" required />
+            </label>
+
+            <label>
+              <div>表示名</div>
+              <input name="label" defaultValue="ONPRIサンプルロゴ" placeholder="例: ONPRIサンプルロゴ" required />
+            </label>
+
+            <label>
+              <div>入力タイプ</div>
+              <input name="inputType" defaultValue="registered_image" placeholder="例: registered_image" required />
+            </label>
+
+            <label>
+              <div>状態</div>
+              <input name="status" defaultValue="検証用" required />
+            </label>
+
+            <button type="submit">商品別カスタマイズ設定を保存</button>
+          </div>
+        </Form>
+      </s-section>
+
+      <s-section heading="商品別カスタマイズ設定">
+        <s-table>
+          <s-table-header-row>
+            <s-table-header>ID</s-table-header>
+            <s-table-header>設定ID</s-table-header>
+            <s-table-header>対象商品ID</s-table-header>
+            <s-table-header>画像ID</s-table-header>
+            <s-table-header>表示名</s-table-header>
+            <s-table-header>入力タイプ</s-table-header>
+            <s-table-header>状態</s-table-header>
+          </s-table-header-row>
+          <s-table-body>
+            {settings.map((setting) => (
+              <s-table-row key={setting.id}>
+                <s-table-cell>{setting.id}</s-table-cell>
+                <s-table-cell>{setting.productSettingId}</s-table-cell>
+                <s-table-cell>{setting.productId}</s-table-cell>
+                <s-table-cell>{setting.imageId}</s-table-cell>
+                <s-table-cell>{setting.label}</s-table-cell>
+                <s-table-cell>{setting.inputType}</s-table-cell>
+                <s-table-cell>{setting.status}</s-table-cell>
               </s-table-row>
             ))}
           </s-table-body>
