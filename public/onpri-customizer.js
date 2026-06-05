@@ -22,7 +22,76 @@
     return element;
   }
 
-  function createCustomizerOption(setting, selectedOutput) {
+  function findProductForms(container) {
+    var forms = [];
+    var productInfo = container.closest(".product__info-container");
+
+    if (productInfo) {
+      forms = Array.from(productInfo.querySelectorAll('form[action*="/cart/add"]'));
+    }
+
+    if (!forms.length) {
+      forms = Array.from(document.querySelectorAll('form[action*="/cart/add"]'));
+    }
+
+    return forms;
+  }
+
+  function setHiddenInput(form, name, value) {
+    var selector = 'input[name="' + name.replace(/"/g, '\\"') + '"]';
+    var input = form.querySelector(selector);
+
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.setAttribute("data-onpri-customizer-property", "true");
+      form.appendChild(input);
+    }
+
+    input.value = value;
+  }
+
+  function clearCustomizerProperties(form) {
+    var inputs = form.querySelectorAll("[data-onpri-customizer-property='true']");
+
+    inputs.forEach(function (input) {
+      input.remove();
+    });
+  }
+
+  function applySelectionToProductForm(container, config, setting) {
+    var forms = findProductForms(container);
+
+    if (!forms.length) {
+      return false;
+    }
+
+    var imageName = setting.image && setting.image.name ? setting.image.name : "";
+    var imageUrl = setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
+
+    forms.forEach(function (form) {
+      clearCustomizerProperties(form);
+
+      setHiddenInput(form, "properties[ONPRI商品設定ID]", config.product.id);
+      setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
+      setHiddenInput(form, "properties[ONPRIブランドID]", config.product.brandId);
+      setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
+      setHiddenInput(form, "properties[ONPRI画像ID]", setting.imageId);
+      setHiddenInput(form, "properties[ONPRI画像名]", imageName);
+      setHiddenInput(form, "properties[ONPRI画像URL]", imageUrl);
+    });
+
+    window.__onpriCustomizerSelection = {
+      container: container,
+      config: config,
+      setting: setting,
+    };
+
+    return true;
+  }
+
+  function createCustomizerOption(container, config, setting, selectedOutput) {
     var imageName = setting.image && setting.image.name ? setting.image.name : "画像未設定";
     var optionId = "onpri-customizer-option-" + setting.id;
 
@@ -50,7 +119,12 @@
     detail.style.fontSize = "14px";
 
     radio.addEventListener("change", function () {
-      selectedOutput.textContent = "選択中: " + imageName;
+      var applied = applySelectionToProductForm(container, config, setting);
+
+      selectedOutput.textContent = applied
+        ? "選択中: " + imageName
+        : "選択中: " + imageName + "（商品フォーム未検出）";
+
       selectedOutput.setAttribute("data-selected-image-id", setting.imageId);
       selectedOutput.setAttribute("data-selected-setting-id", setting.id);
     });
@@ -62,7 +136,7 @@
     return wrapper;
   }
 
-  function createCustomizerOptions(settings) {
+  function createCustomizerOptions(container, config, settings) {
     var wrapper = document.createElement("div");
 
     var heading = document.createElement("h4");
@@ -76,7 +150,7 @@
     selectedOutput.style.fontWeight = "600";
 
     settings.forEach(function (setting) {
-      wrapper.appendChild(createCustomizerOption(setting, selectedOutput));
+      wrapper.appendChild(createCustomizerOption(container, config, setting, selectedOutput));
     });
 
     wrapper.appendChild(selectedOutput);
@@ -112,7 +186,7 @@
       return;
     }
 
-    wrapper.appendChild(createCustomizerOptions(config.settings));
+    wrapper.appendChild(createCustomizerOptions(container, config, config.settings));
     container.appendChild(wrapper);
   }
 
@@ -170,6 +244,46 @@
         });
     });
   }
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+
+    if (!form || !form.matches || !form.matches('form[action*="/cart/add"]')) {
+      return;
+    }
+
+    if (!window.__onpriCustomizerSelection) {
+      return;
+    }
+
+    applySelectionToProductForm(
+      window.__onpriCustomizerSelection.container,
+      window.__onpriCustomizerSelection.config,
+      window.__onpriCustomizerSelection.setting,
+    );
+  }, true);
+
+  document.addEventListener("click", function (event) {
+    var button = event.target && event.target.closest
+      ? event.target.closest('button[type="submit"], input[type="submit"]')
+      : null;
+
+    if (!button || !window.__onpriCustomizerSelection) {
+      return;
+    }
+
+    var form = button.form || button.closest('form[action*="/cart/add"]');
+
+    if (!form) {
+      return;
+    }
+
+    applySelectionToProductForm(
+      window.__onpriCustomizerSelection.container,
+      window.__onpriCustomizerSelection.config,
+      window.__onpriCustomizerSelection.setting,
+    );
+  }, true);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
