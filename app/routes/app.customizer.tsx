@@ -3,48 +3,16 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import { getCustomizerImages, getCustomizerProducts } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
-
-type CustomizerImage = {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-};
-
-type CustomizerProduct = {
-  id: string;
-  name: string;
-  brandId: string;
-  status: string;
-};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const images: CustomizerImage[] = [
-    {
-      id: "logo-01",
-      name: "ONPRIロゴ",
-      type: "登録済み画像",
-      status: "検証用",
-    },
-    {
-      id: "text-01",
-      name: "名入れテキスト",
-      type: "テキスト入力",
-      status: "検証用",
-    },
-  ];
-
-  const products: CustomizerProduct[] = [
-    {
-      id: "product-01",
-      name: "ブランドA カスタムTシャツ",
-      brandId: "branda",
-      status: "検証対象",
-    },
-  ];
+  const [images, products] = await Promise.all([
+    getCustomizerImages(),
+    getCustomizerProducts(),
+  ]);
 
   return {
     images,
@@ -69,6 +37,7 @@ export default function CustomizerPage() {
             <s-table-header>ID</s-table-header>
             <s-table-header>名称</s-table-header>
             <s-table-header>種別</s-table-header>
+            <s-table-header>画像URL</s-table-header>
             <s-table-header>状態</s-table-header>
           </s-table-header-row>
           <s-table-body>
@@ -77,6 +46,7 @@ export default function CustomizerPage() {
                 <s-table-cell>{image.id}</s-table-cell>
                 <s-table-cell>{image.name}</s-table-cell>
                 <s-table-cell>{image.type}</s-table-cell>
+                <s-table-cell>{image.imageUrl || "未設定"}</s-table-cell>
                 <s-table-cell>{image.status}</s-table-cell>
               </s-table-row>
             ))}
@@ -88,6 +58,8 @@ export default function CustomizerPage() {
         <s-table>
           <s-table-header-row>
             <s-table-header>ID</s-table-header>
+            <s-table-header>ストア</s-table-header>
+            <s-table-header>商品ID</s-table-header>
             <s-table-header>商品名</s-table-header>
             <s-table-header>ブランドID</s-table-header>
             <s-table-header>状態</s-table-header>
@@ -96,7 +68,9 @@ export default function CustomizerPage() {
             {products.map((product) => (
               <s-table-row key={product.id}>
                 <s-table-cell>{product.id}</s-table-cell>
-                <s-table-cell>{product.name}</s-table-cell>
+                <s-table-cell>{product.shop}</s-table-cell>
+                <s-table-cell>{product.productId || "未設定"}</s-table-cell>
+                <s-table-cell>{product.productTitle}</s-table-cell>
                 <s-table-cell>{product.brandId}</s-table-cell>
                 <s-table-cell>{product.status}</s-table-cell>
               </s-table-row>
