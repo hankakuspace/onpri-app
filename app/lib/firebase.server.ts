@@ -1,5 +1,5 @@
 // app/lib/firebase.server.ts
-import { cert, getApps, initializeApp, applicationDefault } from "firebase-admin/app";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 type FirebaseServiceAccount = {
@@ -24,25 +24,18 @@ function getFirebaseServiceAccount(): FirebaseServiceAccount | null {
   };
 }
 
-function initializeFirebaseAdmin() {
-  if (getApps().length > 0) {
-    return;
-  }
-
+export function getFirebaseDb() {
   const serviceAccount = getFirebaseServiceAccount();
 
-  if (serviceAccount) {
+  if (!serviceAccount) {
+    return null;
+  }
+
+  if (getApps().length === 0) {
     initializeApp({
       credential: cert(serviceAccount),
     });
-    return;
   }
 
-  initializeApp({
-    credential: applicationDefault(),
-  });
+  return getFirestore();
 }
-
-initializeFirebaseAdmin();
-
-export const db = getFirestore();

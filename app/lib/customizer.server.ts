@@ -1,5 +1,5 @@
 // app/lib/customizer.server.ts
-import { db } from "./firebase.server";
+import { getFirebaseDb } from "./firebase.server";
 
 export type CustomizerImage = {
   id: string;
@@ -47,6 +47,12 @@ const fallbackProducts: CustomizerProduct[] = [
 ];
 
 export async function getCustomizerImages(): Promise<CustomizerImage[]> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return fallbackImages;
+  }
+
   try {
     const snapshot = await db
       .collection("customizer_images")
@@ -76,6 +82,12 @@ export async function getCustomizerImages(): Promise<CustomizerImage[]> {
 }
 
 export async function getCustomizerProducts(): Promise<CustomizerProduct[]> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return fallbackProducts;
+  }
+
   try {
     const snapshot = await db
       .collection("customizer_products")
