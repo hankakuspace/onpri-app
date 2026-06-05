@@ -62,6 +62,15 @@ export type CreateCustomizerImageInput = {
   status: string;
 };
 
+export type CreateCustomizerProductInput = {
+  id: string;
+  shop: string;
+  productId: string;
+  productTitle: string;
+  brandId: string;
+  status: string;
+};
+
 export async function getCustomizerImages(): Promise<CustomizerImage[]> {
   const db = getFirebaseDb();
 
@@ -197,6 +206,57 @@ export async function createCustomizerImage(
     return { ok: true };
   } catch (error) {
     console.error("Failed to create customizer_image in Firestore:", error);
+
+    return {
+      ok: false,
+      message: "Firestoreへの登録に失敗しました。",
+    };
+  }
+}
+
+export async function createCustomizerProduct(
+  input: CreateCustomizerProductInput,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return {
+      ok: false,
+      message: "Firebase接続情報が未設定のため、登録できません。",
+    };
+  }
+
+  const id = input.id.trim();
+  const shop = input.shop.trim();
+  const productId = input.productId.trim();
+  const productTitle = input.productTitle.trim();
+  const brandId = input.brandId.trim();
+  const status = input.status.trim();
+
+  if (!id || !shop || !productTitle || !brandId || !status) {
+    return {
+      ok: false,
+      message: "ID、ストア、商品名、ブランドID、状態は必須です。",
+    };
+  }
+
+  try {
+    await db.collection("customizer_products").doc(id).set(
+      {
+        shop,
+        productId,
+        productTitle,
+        brandId,
+        status,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      },
+      { merge: true },
+    );
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Failed to create customizer_product in Firestore:", error);
 
     return {
       ok: false,

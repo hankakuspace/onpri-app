@@ -3,7 +3,11 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "re
 import { Form, useActionData, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
-import { createCustomizerImage, getCustomizerData } from "../lib/customizer.server";
+import {
+  createCustomizerImage,
+  createCustomizerProduct,
+  getCustomizerData,
+} from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -20,28 +24,48 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = String(formData.get("intent") ?? "");
 
-  if (intent !== "create-customizer-image") {
+  if (intent === "create-customizer-image") {
+    const result = await createCustomizerImage({
+      id: String(formData.get("id") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      type: String(formData.get("type") ?? ""),
+      imageUrl: String(formData.get("imageUrl") ?? ""),
+      status: String(formData.get("status") ?? ""),
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+
     return {
-      ok: false,
-      message: "未対応の操作です。",
+      ok: true,
+      message: "登録済み画像を保存しました。",
     };
   }
 
-  const result = await createCustomizerImage({
-    id: String(formData.get("id") ?? ""),
-    name: String(formData.get("name") ?? ""),
-    type: String(formData.get("type") ?? ""),
-    imageUrl: String(formData.get("imageUrl") ?? ""),
-    status: String(formData.get("status") ?? ""),
-  });
+  if (intent === "create-customizer-product") {
+    const result = await createCustomizerProduct({
+      id: String(formData.get("id") ?? ""),
+      shop: String(formData.get("shop") ?? ""),
+      productId: String(formData.get("productId") ?? ""),
+      productTitle: String(formData.get("productTitle") ?? ""),
+      brandId: String(formData.get("brandId") ?? ""),
+      status: String(formData.get("status") ?? ""),
+    });
 
-  if (!result.ok) {
-    return result;
+    if (!result.ok) {
+      return result;
+    }
+
+    return {
+      ok: true,
+      message: "対象商品を保存しました。",
+    };
   }
 
   return {
-    ok: true,
-    message: "登録済み画像を保存しました。",
+    ok: false,
+    message: "未対応の操作です。",
   };
 };
 
@@ -125,6 +149,46 @@ export default function CustomizerPage() {
             ))}
           </s-table-body>
         </s-table>
+      </s-section>
+
+      <s-section heading="対象商品を追加">
+        <Form method="post">
+          <input type="hidden" name="intent" value="create-customizer-product" />
+
+          <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
+            <label>
+              <div>ID</div>
+              <input name="id" defaultValue="product-02" placeholder="例: product-02" required />
+            </label>
+
+            <label>
+              <div>ストア</div>
+              <input name="shop" defaultValue="onpri-dev.myshopify.com" placeholder="例: onpri-dev.myshopify.com" required />
+            </label>
+
+            <label>
+              <div>商品ID</div>
+              <input name="productId" placeholder="未設定の場合は空欄でOK" />
+            </label>
+
+            <label>
+              <div>商品名</div>
+              <input name="productTitle" defaultValue="ブランドB カスタムTシャツ" placeholder="例: ブランドB カスタムTシャツ" required />
+            </label>
+
+            <label>
+              <div>ブランドID</div>
+              <input name="brandId" defaultValue="brandb" placeholder="例: brandb" required />
+            </label>
+
+            <label>
+              <div>状態</div>
+              <input name="status" defaultValue="検証対象" required />
+            </label>
+
+            <button type="submit">対象商品を保存</button>
+          </div>
+        </Form>
       </s-section>
 
       <s-section heading="対象商品">
