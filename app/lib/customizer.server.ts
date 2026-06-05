@@ -104,6 +104,21 @@ export type CreateCustomizerProductSettingInput = {
   status: string;
 };
 
+export type StorefrontCustomizerSetting = {
+  id: string;
+  imageId: string;
+  label: string;
+  inputType: string;
+  status: string;
+  image: CustomizerImage | null;
+};
+
+export type StorefrontCustomizerConfig = {
+  product: CustomizerProduct | null;
+  settings: StorefrontCustomizerSetting[];
+  source: CustomizerDataSource;
+};
+
 export async function getCustomizerImages(): Promise<CustomizerImage[]> {
   const db = getFirebaseDb();
 
@@ -388,6 +403,123 @@ export async function createCustomizerProductSetting(
     return {
       ok: false,
       message: "Firestoreへの登録に失敗しました。",
+    };
+  }
+}
+
+export async function getStorefrontCustomizerConfig(
+  productId: string,
+): Promise<StorefrontCustomizerConfig> {
+  const targetProductId = productId.trim();
+
+  if (!targetProductId) {
+    return {
+      product: null,
+      settings: [],
+      source: "fallback",
+    };
+  }
+
+  const db = getFirebaseDb();
+
+  if (!db) {
+    const product =
+      fallbackProducts.find(
+        (item) => item.id === targetProductId || item.productId === targetProductId,
+      ) ?? null;
+
+    const settings = fallbackSettings
+      .filter((setting) => setting.productId === targetProductId)
+      .map((setting) => ({
+        id: setting.id,
+        imageId: setting.imageId,
+        label: setting.label,
+        inputType: setting.inputType,
+        status: setting.status,
+        image:
+          fallbackImages.find((image) => image.id === setting.imageId) ?? null,
+      }));
+
+    return {
+      product,
+      settings,
+      source: "fallback",
+    };
+  }
+
+  try {
+    const productDoc = await db
+      .collection("customizer_products")
+      .doc(targetProductId)
+      .get();
+
+    const product = productDoc.exists
+      ? (() => {
+          const data = productDoc.data() ?? {};
+
+          return {
+            id: productDoc.id,
+            shop: String(data.shop ?? ""),
+            productId: String(data.productId ?? ""),
+            productTitle: String(data.productTitle ?? ""),
+            brandId: String(data.brandId ?? ""),
+            status: String(data.status ?? ""),
+          };
+        })()
+      : null;
+
+    const settingsSnapshot = await db
+      .collection("customizer_product_settings")
+      .where("productId", "==", targetProductId)
+      .limit(50)
+      .get();
+
+    const settings = await Promise.all(
+      settingsSnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const imageId = String(data.imageId ?? "");
+
+        const imageDoc = imageId
+          ? await db.collection("customizer_images").doc(imageId).get()
+          : null;
+
+        const image = imageDoc?.exists
+          ? (() => {
+              const imageData = imageDoc.data() ?? {};
+
+              return {
+                id: imageDoc.id,
+                name: String(imageData.name ?? ""),
+                type: String(imageData.type ?? ""),
+                imageUrl: String(imageData.imageUrl ?? ""),
+                status: String(imageData.status ?? ""),
+              };
+            })()
+          : null;
+
+        return {
+          id: doc.id,
+          imageId,
+          label: String(data.label ?? ""),
+          inputType: String(data.inputType ?? ""),
+          status: String(data.status ?? ""),
+          image,
+        };
+      }),
+    );
+
+    return {
+      product,
+      settings,
+      source: "firestore",
+    };
+  } catch (error) {
+    console.error("Failed to fetch storefront customizer config:", error);
+
+    return {
+      product: null,
+      settings: [],
+      source: "fallback",
     };
   }
 }
