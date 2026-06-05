@@ -97,6 +97,38 @@ export default function CustomizerPage() {
 
   return (
     <s-page heading="ONPRI Customizer">
+      <style>
+        {`
+          .onpri-admin-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+          }
+
+          .onpri-admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+          }
+
+          .onpri-admin-table th,
+          .onpri-admin-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e5e5;
+            text-align: left;
+            vertical-align: top;
+            white-space: nowrap;
+          }
+
+          .onpri-admin-table th {
+            background: #f6f6f7;
+            font-weight: 600;
+          }
+
+          .onpri-admin-table tr:last-child td {
+            border-bottom: none;
+          }
+        `}
+      </style>
       <s-section heading="検証方針">
         <s-paragraph>
           ONPRI独自カスタマイズ機能の管理画面です。登録済み画像、商品別設定、Canvasプレビュー、注文情報保存を段階的に実装します。
@@ -151,26 +183,30 @@ export default function CustomizerPage() {
       </s-section>
 
       <s-section heading="登録済み画像・入力項目">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>ID</s-table-header>
-            <s-table-header>名称</s-table-header>
-            <s-table-header>種別</s-table-header>
-            <s-table-header>画像URL</s-table-header>
-            <s-table-header>状態</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
-            {images.map((image) => (
-              <s-table-row key={image.id}>
-                <s-table-cell>{image.id}</s-table-cell>
-                <s-table-cell>{image.name}</s-table-cell>
-                <s-table-cell>{image.type}</s-table-cell>
-                <s-table-cell>{image.imageUrl || "未設定"}</s-table-cell>
-                <s-table-cell>{image.status}</s-table-cell>
-              </s-table-row>
-            ))}
-          </s-table-body>
-        </s-table>
+        <div className="onpri-admin-table-wrap">
+          <table className="onpri-admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>名称</th>
+                <th>種別</th>
+                <th>画像URL</th>
+                <th>状態</th>
+              </tr>
+            </thead>
+            <tbody>
+              {images.map((image) => (
+                <tr key={image.id}>
+                  <td>{image.id}</td>
+                  <td>{image.name}</td>
+                  <td>{image.type}</td>
+                  <td>{image.imageUrl || "未設定"}</td>
+                  <td>{image.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </s-section>
 
       <s-section heading="対象商品を追加">
@@ -214,28 +250,32 @@ export default function CustomizerPage() {
       </s-section>
 
       <s-section heading="対象商品">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>ID</s-table-header>
-            <s-table-header>ストア</s-table-header>
-            <s-table-header>商品ID</s-table-header>
-            <s-table-header>商品名</s-table-header>
-            <s-table-header>ブランドID</s-table-header>
-            <s-table-header>状態</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
-            {products.map((product) => (
-              <s-table-row key={product.id}>
-                <s-table-cell>{product.id}</s-table-cell>
-                <s-table-cell>{product.shop}</s-table-cell>
-                <s-table-cell>{product.productId || "未設定"}</s-table-cell>
-                <s-table-cell>{product.productTitle}</s-table-cell>
-                <s-table-cell>{product.brandId}</s-table-cell>
-                <s-table-cell>{product.status}</s-table-cell>
-              </s-table-row>
-            ))}
-          </s-table-body>
-        </s-table>
+        <div className="onpri-admin-table-wrap">
+          <table className="onpri-admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ストア</th>
+                <th>商品ID</th>
+                <th>商品名</th>
+                <th>ブランドID</th>
+                <th>状態</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>{product.id}</td>
+                  <td>{product.shop}</td>
+                  <td>{product.productId || "未設定"}</td>
+                  <td>{product.productTitle}</td>
+                  <td>{product.brandId}</td>
+                  <td>{product.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </s-section>
 
       <s-section heading="商品別カスタマイズ設定を追加">
@@ -284,30 +324,34 @@ export default function CustomizerPage() {
       </s-section>
 
       <s-section heading="商品別カスタマイズ設定">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>ID</s-table-header>
-            <s-table-header>設定ID</s-table-header>
-            <s-table-header>対象商品ID</s-table-header>
-            <s-table-header>画像ID</s-table-header>
-            <s-table-header>表示名</s-table-header>
-            <s-table-header>入力タイプ</s-table-header>
-            <s-table-header>状態</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
-            {settings.map((setting) => (
-              <s-table-row key={setting.id}>
-                <s-table-cell>{setting.id}</s-table-cell>
-                <s-table-cell>{setting.productSettingId}</s-table-cell>
-                <s-table-cell>{setting.productId}</s-table-cell>
-                <s-table-cell>{setting.imageId}</s-table-cell>
-                <s-table-cell>{setting.label}</s-table-cell>
-                <s-table-cell>{setting.inputType}</s-table-cell>
-                <s-table-cell>{setting.status}</s-table-cell>
-              </s-table-row>
-            ))}
-          </s-table-body>
-        </s-table>
+        <div className="onpri-admin-table-wrap">
+          <table className="onpri-admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>設定ID</th>
+                <th>対象商品ID</th>
+                <th>画像ID</th>
+                <th>表示名</th>
+                <th>入力タイプ</th>
+                <th>状態</th>
+              </tr>
+            </thead>
+            <tbody>
+              {settings.map((setting) => (
+                <tr key={setting.id}>
+                  <td>{setting.id}</td>
+                  <td>{setting.productSettingId}</td>
+                  <td>{setting.productId}</td>
+                  <td>{setting.imageId}</td>
+                  <td>{setting.label}</td>
+                  <td>{setting.inputType}</td>
+                  <td>{setting.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </s-section>
 
       <s-section heading="次の実装予定">
