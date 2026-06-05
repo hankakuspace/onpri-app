@@ -15,31 +15,73 @@
     }
   }
 
-  function createStatus(message) {
+  function createText(message) {
     var element = document.createElement("p");
     element.textContent = message;
     element.style.margin = "0 0 12px";
     return element;
   }
 
-  function createList(settings) {
-    var list = document.createElement("ul");
-    list.style.margin = "0";
-    list.style.paddingLeft = "20px";
+  function createCustomizerOption(setting, selectedOutput) {
+    var imageName = setting.image && setting.image.name ? setting.image.name : "画像未設定";
+    var optionId = "onpri-customizer-option-" + setting.id;
 
-    settings.forEach(function (setting) {
-      var item = document.createElement("li");
-      var imageName = setting.image && setting.image.name ? setting.image.name : "画像未設定";
-      item.textContent =
-        setting.label +
-        " / " +
-        setting.inputType +
-        " / " +
-        imageName;
-      list.appendChild(item);
+    var wrapper = document.createElement("label");
+    wrapper.setAttribute("for", optionId);
+    wrapper.style.display = "block";
+    wrapper.style.border = "1px solid #dddddd";
+    wrapper.style.padding = "12px";
+    wrapper.style.margin = "0 0 10px";
+    wrapper.style.cursor = "pointer";
+
+    var radio = document.createElement("input");
+    radio.type = "radio";
+    radio.id = optionId;
+    radio.name = "onpri_customizer_registered_image";
+    radio.value = setting.imageId;
+    radio.style.marginRight = "8px";
+
+    var title = document.createElement("strong");
+    title.textContent = setting.label;
+
+    var detail = document.createElement("div");
+    detail.textContent = setting.inputType + " / " + imageName;
+    detail.style.marginTop = "6px";
+    detail.style.fontSize = "14px";
+
+    radio.addEventListener("change", function () {
+      selectedOutput.textContent = "選択中: " + imageName;
+      selectedOutput.setAttribute("data-selected-image-id", setting.imageId);
+      selectedOutput.setAttribute("data-selected-setting-id", setting.id);
     });
 
-    return list;
+    wrapper.appendChild(radio);
+    wrapper.appendChild(title);
+    wrapper.appendChild(detail);
+
+    return wrapper;
+  }
+
+  function createCustomizerOptions(settings) {
+    var wrapper = document.createElement("div");
+
+    var heading = document.createElement("h4");
+    heading.textContent = "登録済み画像を選択";
+    heading.style.margin = "16px 0 12px";
+    wrapper.appendChild(heading);
+
+    var selectedOutput = document.createElement("p");
+    selectedOutput.textContent = "選択中: 未選択";
+    selectedOutput.style.margin = "12px 0 0";
+    selectedOutput.style.fontWeight = "600";
+
+    settings.forEach(function (setting) {
+      wrapper.appendChild(createCustomizerOption(setting, selectedOutput));
+    });
+
+    wrapper.appendChild(selectedOutput);
+
+    return wrapper;
   }
 
   function renderCustomizer(container, config) {
@@ -56,21 +98,21 @@
     wrapper.appendChild(title);
 
     if (!config || !config.product) {
-      wrapper.appendChild(createStatus("この商品に紐づくカスタマイズ設定はありません。"));
+      wrapper.appendChild(createText("この商品に紐づくカスタマイズ設定はありません。"));
       container.appendChild(wrapper);
       return;
     }
 
-    wrapper.appendChild(createStatus("商品: " + config.product.productTitle));
-    wrapper.appendChild(createStatus("ブランドID: " + config.product.brandId));
+    wrapper.appendChild(createText("商品: " + config.product.productTitle));
+    wrapper.appendChild(createText("ブランドID: " + config.product.brandId));
 
     if (!config.settings || config.settings.length === 0) {
-      wrapper.appendChild(createStatus("カスタマイズ項目は未設定です。"));
+      wrapper.appendChild(createText("カスタマイズ項目は未設定です。"));
       container.appendChild(wrapper);
       return;
     }
 
-    wrapper.appendChild(createList(config.settings));
+    wrapper.appendChild(createCustomizerOptions(config.settings));
     container.appendChild(wrapper);
   }
 
@@ -87,7 +129,7 @@
     title.style.margin = "0 0 12px";
 
     wrapper.appendChild(title);
-    wrapper.appendChild(createStatus("カスタマイズ設定を取得できませんでした。"));
+    wrapper.appendChild(createText("カスタマイズ設定を取得できませんでした。"));
     container.appendChild(wrapper);
   }
 
