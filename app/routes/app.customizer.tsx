@@ -3,31 +3,33 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
-import { getCustomizerImages, getCustomizerProducts } from "../lib/customizer.server";
+import { getCustomizerData } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const [images, products] = await Promise.all([
-    getCustomizerImages(),
-    getCustomizerProducts(),
-  ]);
+  const customizerData = await getCustomizerData();
 
-  return {
-    images,
-    products,
-  };
+  return customizerData;
 };
 
 export default function CustomizerPage() {
-  const { images, products } = useLoaderData<typeof loader>();
+  const { images, products, source } = useLoaderData<typeof loader>();
 
   return (
     <s-page heading="ONPRI Customizer">
       <s-section heading="検証方針">
         <s-paragraph>
           ONPRI独自カスタマイズ機能の管理画面です。登録済み画像、商品別設定、Canvasプレビュー、注文情報保存を段階的に実装します。
+        </s-paragraph>
+      </s-section>
+
+      <s-section heading="データ取得状態">
+        <s-paragraph>
+          {source === "firestore"
+            ? "Firestoreからデータを取得しています。"
+            : "Firebase接続情報が未設定、またはFirestoreから取得できないため、fallbackデータを表示しています。"}
         </s-paragraph>
       </s-section>
 

@@ -46,6 +46,14 @@ const fallbackProducts: CustomizerProduct[] = [
   },
 ];
 
+export type CustomizerDataSource = "firestore" | "fallback";
+
+export type CustomizerDataResult = {
+  images: CustomizerImage[];
+  products: CustomizerProduct[];
+  source: CustomizerDataSource;
+};
+
 export async function getCustomizerImages(): Promise<CustomizerImage[]> {
   const db = getFirebaseDb();
 
@@ -115,4 +123,27 @@ export async function getCustomizerProducts(): Promise<CustomizerProduct[]> {
     console.error("Failed to fetch customizer_products from Firestore:", error);
     return fallbackProducts;
   }
+}
+
+export async function getCustomizerData(): Promise<CustomizerDataResult> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return {
+      images: fallbackImages,
+      products: fallbackProducts,
+      source: "fallback",
+    };
+  }
+
+  const [images, products] = await Promise.all([
+    getCustomizerImages(),
+    getCustomizerProducts(),
+  ]);
+
+  return {
+    images,
+    products,
+    source: "firestore",
+  };
 }
