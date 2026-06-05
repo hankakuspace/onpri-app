@@ -76,17 +76,17 @@ export default function CustomizerPage() {
           <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
             <label>
               <div>ID</div>
-              <input name="id" placeholder="例: logo-02" required />
+              <input name="id" defaultValue="logo-02" placeholder="例: logo-02" required />
             </label>
 
             <label>
               <div>名称</div>
-              <input name="name" placeholder="例: ONPRIサンプルロゴ" required />
+              <input name="name" defaultValue="ONPRIサンプルロゴ" placeholder="例: ONPRIサンプルロゴ" required />
             </label>
 
             <label>
               <div>種別</div>
-              <input name="type" placeholder="例: 登録済み画像" required />
+              <input name="type" defaultValue="登録済み画像" placeholder="例: 登録済み画像" required />
             </label>
 
             <label>
