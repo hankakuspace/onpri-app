@@ -1,9 +1,9 @@
 // app/routes/app.customizer.tsx
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useRouteError } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { Form, useActionData, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
-import { getCustomizerData } from "../lib/customizer.server";
+import { createCustomizerImage, getCustomizerData } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -14,8 +14,40 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return customizerData;
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await authenticate.admin(request);
+
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+
+  if (intent !== "create-customizer-image") {
+    return {
+      ok: false,
+      message: "未対応の操作です。",
+    };
+  }
+
+  const result = await createCustomizerImage({
+    id: String(formData.get("id") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    type: String(formData.get("type") ?? ""),
+    imageUrl: String(formData.get("imageUrl") ?? ""),
+    status: String(formData.get("status") ?? ""),
+  });
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    message: "登録済み画像を保存しました。",
+  };
+};
+
 export default function CustomizerPage() {
   const { images, products, source } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
 
   return (
     <s-page heading="ONPRI Customizer">
@@ -31,6 +63,45 @@ export default function CustomizerPage() {
             ? "Firestoreからデータを取得しています。"
             : "Firebase接続情報が未設定、またはFirestoreから取得できないため、fallbackデータを表示しています。"}
         </s-paragraph>
+      </s-section>
+
+      <s-section heading="登録済み画像を追加">
+        {actionData?.message ? (
+          <s-paragraph>{actionData.message}</s-paragraph>
+        ) : null}
+
+        <Form method="post">
+          <input type="hidden" name="intent" value="create-customizer-image" />
+
+          <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
+            <label>
+              <div>ID</div>
+              <input name="id" placeholder="例: logo-02" required />
+            </label>
+
+            <label>
+              <div>名称</div>
+              <input name="name" placeholder="例: ONPRIサンプルロゴ" required />
+            </label>
+
+            <label>
+              <div>種別</div>
+              <input name="type" placeholder="例: 登録済み画像" required />
+            </label>
+
+            <label>
+              <div>画像URL</div>
+              <input name="imageUrl" placeholder="未設定の場合は空欄でOK" />
+            </label>
+
+            <label>
+              <div>状態</div>
+              <input name="status" defaultValue="検証用" required />
+            </label>
+
+            <button type="submit">登録済み画像を保存</button>
+          </div>
+        </Form>
       </s-section>
 
       <s-section heading="登録済み画像・入力項目">
