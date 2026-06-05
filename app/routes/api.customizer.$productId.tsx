@@ -11,6 +11,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
     },
   });
 };
