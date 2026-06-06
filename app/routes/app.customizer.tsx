@@ -269,6 +269,7 @@ export default function CustomizerPage() {
   const [editingImageIds, setEditingImageIds] = useState<string[]>([]);
   const [editingCustomizationType, setEditingCustomizationType] =
     useState<"registered_image" | "text">("registered_image");
+  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
   const menuItems = [
     { id: "shopify-products", label: "Shopify商品設定" },
@@ -321,12 +322,14 @@ export default function CustomizerPage() {
     setEditingProductId(productId);
     setEditingImageIds(assignedImageIds);
     setEditingCustomizationType(customizationType);
+    setLibrarySearchQuery("");
   }
 
   function closeProductImageEditor() {
     setEditingProductId(null);
     setEditingImageIds([]);
     setEditingCustomizationType("registered_image");
+    setLibrarySearchQuery("");
   }
 
   function toggleEditingImageId(imageId: string) {
@@ -631,6 +634,298 @@ export default function CustomizerPage() {
             cursor: pointer;
             font-weight: 600;
           }
+
+          .onpri-edit-modal {
+            width: min(960px, 92vw);
+            max-height: 88vh;
+            overflow: hidden;
+            padding: 0;
+            border-radius: 16px;
+            background: #ffffff;
+            color: #1f2225;
+            box-shadow: 0 0 0 1px rgba(26, 28, 29, 0.05), 0 30px 60px -20px rgba(26, 28, 29, 0.45);
+            display: flex;
+            flex-direction: column;
+          }
+
+          .onpri-edit-modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #e3e3e3;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+          }
+
+          .onpri-modal-title {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.35;
+            font-weight: 700;
+          }
+
+          .onpri-modal-subtitle {
+            margin-top: 6px;
+            color: #5c5f62;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+
+          .onpri-brand-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: #f1f2f3;
+            color: #5c5f62;
+            font-size: 13px;
+          }
+
+          .onpri-edit-modal-close {
+            border: 0;
+            background: transparent;
+            color: #5c5f62;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 28px;
+            line-height: 1;
+          }
+
+          .onpri-edit-modal-close:hover {
+            background: #f6f6f7;
+          }
+
+          .onpri-modal-body {
+            padding: 28px;
+            overflow: auto;
+          }
+
+          .onpri-modal-section-title {
+            margin: 0 0 14px;
+            font-size: 16px;
+            font-weight: 700;
+          }
+
+          .onpri-segment {
+            display: inline-flex;
+            padding: 4px;
+            border: 1px solid #d2d4d6;
+            border-radius: 12px;
+            background: #f1f2f3;
+            gap: 4px;
+          }
+
+          .onpri-segment-button {
+            min-height: 42px;
+            padding: 0 18px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            background: transparent;
+            color: #5c5f62;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .onpri-segment-button.is-active {
+            background: #ffffff;
+            color: #1f2225;
+            border-color: #d2d4d6;
+            box-shadow: 0 1px 0 rgba(26, 28, 29, 0.10);
+          }
+
+          .onpri-library-head {
+            margin-top: 28px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+          }
+
+          .onpri-count-badge {
+            display: inline-flex;
+            margin-left: 8px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: #f1f2f3;
+            color: #5c5f62;
+            font-size: 13px;
+            font-weight: 600;
+          }
+
+          .onpri-library-tools {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+          }
+
+          .onpri-library-search {
+            min-height: 44px;
+            width: 100%;
+            padding: 0 14px;
+            border: 1px solid #c9cccf;
+            border-radius: 10px;
+            background: #ffffff;
+            font-size: 14px;
+          }
+
+          .onpri-bulk-button {
+            min-height: 44px;
+            padding: 0 18px;
+            border: 1px solid #008060;
+            border-radius: 10px;
+            background: #008060;
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+          }
+
+          .onpri-bulk-button:hover {
+            background: #006e52;
+          }
+
+          .onpri-library-list {
+            margin-top: 18px;
+            border: 1px solid #e3e3e3;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+          }
+
+          .onpri-library-row {
+            display: grid;
+            grid-template-columns: 42px 72px minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e3e3e3;
+          }
+
+          .onpri-library-row:last-child {
+            border-bottom: 0;
+          }
+
+          .onpri-library-row.is-selected {
+            background: #f1f8f5;
+          }
+
+          .onpri-library-checkbox {
+            width: 22px;
+            height: 22px;
+            accent-color: #008060;
+          }
+
+          .onpri-library-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            border: 1px solid #e3e3e3;
+            border-radius: 10px;
+            background: #ffffff;
+          }
+
+          .onpri-library-name {
+            min-width: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2225;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .onpri-library-meta {
+            margin-top: 4px;
+            font-size: 13px;
+            color: #5c5f62;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .onpri-status-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+          }
+
+          .onpri-status-badge.is-selected {
+            background: #e3f1ec;
+            color: #0c5132;
+          }
+
+          .onpri-status-badge.is-empty {
+            background: #f1f2f3;
+            color: #5c5f62;
+          }
+
+          .onpri-name-placeholder {
+            margin-top: 18px;
+            padding: 20px;
+            border: 1px dashed #c9cccf;
+            border-radius: 12px;
+            background: #fafafa;
+            color: #5c5f62;
+          }
+
+          .onpri-edit-modal-footer {
+            padding: 18px 28px;
+            border-top: 1px solid #e3e3e3;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: #ffffff;
+          }
+
+          .onpri-footer-note {
+            color: #5c5f62;
+            font-size: 14px;
+          }
+
+          .onpri-footer-actions {
+            display: flex;
+            gap: 10px;
+          }
+
+          .onpri-secondary-button {
+            min-height: 40px;
+            padding: 0 18px;
+            border: 1px solid #c9cccf;
+            border-radius: 9px;
+            background: #ffffff;
+            color: #1f2225;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .onpri-primary-button {
+            min-height: 40px;
+            padding: 0 18px;
+            border: 1px solid #008060;
+            border-radius: 9px;
+            background: #008060;
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .onpri-primary-button:hover {
+            background: #006e52;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -769,7 +1064,6 @@ export default function CustomizerPage() {
                                   name="customizerProductId"
                                   value={customizerProductId}
                                 />
-
                                 <input
                                   type="hidden"
                                   name="customizationType"
@@ -789,9 +1083,17 @@ export default function CustomizerPage() {
 
                                 <div className="onpri-edit-modal-header">
                                   <div>
-                                    <h3 style={{ margin: 0 }}>{product.title}</h3>
-                                    <div>ブランド：{product.brandId || "未設定"}</div>
+                                    <h3 className="onpri-modal-title">{product.title}</h3>
+                                    <div className="onpri-modal-subtitle">
+                                      <span>ブランド</span>
+                                      <span className="onpri-brand-badge">
+                                        {product.brandId || "未設定"}
+                                      </span>
+                                      <span>・</span>
+                                      <span>商品ID {product.id.split("/").pop()}</span>
+                                    </div>
                                   </div>
+
                                   <button
                                     type="button"
                                     className="onpri-edit-modal-close"
@@ -802,106 +1104,176 @@ export default function CustomizerPage() {
                                   </button>
                                 </div>
 
-                                <div className="onpri-edit-modal-section">
-                                  <h4>カスタマイズ種別</h4>
-                                  <div className="onpri-customization-type-options">
-                                    <label>
-                                      <input
-                                        type="radio"
-                                        checked={editingCustomizationType === "registered_image"}
-                                        onChange={() => setEditingCustomizationType("registered_image")}
-                                      />
-                                      イラスト印刷
-                                    </label>
-                                    <label>
-                                      <input
-                                        type="radio"
-                                        checked={editingCustomizationType === "text"}
-                                        onChange={() => setEditingCustomizationType("text")}
-                                      />
-                                      名入れ
-                                    </label>
-                                  </div>
-                                </div>
+                                <div className="onpri-modal-body">
+                                  <section>
+                                    <h4 className="onpri-modal-section-title">
+                                      カスタマイズ種別
+                                    </h4>
 
-                                {editingCustomizationType === "registered_image" ? (
-                                  <> 
-                                    <div className="onpri-edit-modal-section">
-                                      <h4>使用可能な画像</h4>
-                                  {editingImageIds.length > 0 ? (
-                                    <div className="onpri-assigned-images">
-                                      {registeredImages
-                                        .filter((image) =>
-                                          editingImageIds.includes(image.id),
-                                        )
-                                        .map((image) => (
-                                          <div
-                                            key={`${product.id}-modal-assigned-${image.id}`}
-                                            className="onpri-library-card is-selected"
-                                          >
-                                            <img
-                                              src={image.imageUrl}
-                                              alt={`${image.name} サムネイル`}
-                                            />
-                                            <span>{image.name}</span>
-                                            <button
-                                              type="button"
-                                              onClick={() => toggleEditingImageId(image.id)}
-                                            >
-                                              解除
-                                            </button>
-                                          </div>
-                                        ))}
+                                    <div className="onpri-segment">
+                                      <button
+                                        type="button"
+                                        className={
+                                          editingCustomizationType === "registered_image"
+                                            ? "onpri-segment-button is-active"
+                                            : "onpri-segment-button"
+                                        }
+                                        onClick={() => setEditingCustomizationType("registered_image")}
+                                      >
+                                        イラスト印刷
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        className={
+                                          editingCustomizationType === "text"
+                                            ? "onpri-segment-button is-active"
+                                            : "onpri-segment-button"
+                                        }
+                                        onClick={() => setEditingCustomizationType("text")}
+                                      >
+                                        名入れ
+                                      </button>
                                     </div>
+                                  </section>
+
+                                  {editingCustomizationType === "registered_image" ? (
+                                    <section>
+                                      <div className="onpri-library-head">
+                                        <h4 className="onpri-modal-section-title">
+                                          画像ライブラリ
+                                          <span className="onpri-count-badge">
+                                            全 {registeredImages.length} 件
+                                          </span>
+                                        </h4>
+                                        <span className="onpri-upload-note">
+                                          チェックして使用可能に追加
+                                        </span>
+                                      </div>
+
+                                      <div className="onpri-library-tools">
+                                        <input
+                                          className="onpri-library-search"
+                                          type="search"
+                                          value={librarySearchQuery}
+                                          onChange={(event) =>
+                                            setLibrarySearchQuery(event.currentTarget.value)
+                                          }
+                                          placeholder="画像名で検索"
+                                        />
+
+                                        <button
+                                          type="button"
+                                          className="onpri-bulk-button"
+                                          onClick={() => {
+                                            const visibleImageIds = registeredImages
+                                              .filter((image) =>
+                                                image.name
+                                                  .toLowerCase()
+                                                  .includes(librarySearchQuery.toLowerCase()),
+                                              )
+                                              .map((image) => image.id);
+
+                                            setEditingImageIds((currentImageIds) =>
+                                              Array.from(
+                                                new Set([...currentImageIds, ...visibleImageIds]),
+                                              ),
+                                            );
+                                          }}
+                                        >
+                                          表示中の画像を追加
+                                        </button>
+                                      </div>
+
+                                      <div className="onpri-library-list">
+                                        {registeredImages
+                                          .filter((image) =>
+                                            image.name
+                                              .toLowerCase()
+                                              .includes(librarySearchQuery.toLowerCase()),
+                                          )
+                                          .map((image) => {
+                                            const isSelected = editingImageIds.includes(image.id);
+
+                                            return (
+                                              <label
+                                                key={`${product.id}-library-${image.id}`}
+                                                className={
+                                                  isSelected
+                                                    ? "onpri-library-row is-selected"
+                                                    : "onpri-library-row"
+                                                }
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  className="onpri-library-checkbox"
+                                                  checked={isSelected}
+                                                  onChange={() => toggleEditingImageId(image.id)}
+                                                />
+
+                                                <img
+                                                  className="onpri-library-thumb"
+                                                  src={image.imageUrl}
+                                                  alt={`${image.name} サムネイル`}
+                                                />
+
+                                                <div>
+                                                  <div className="onpri-library-name">
+                                                    {image.name}
+                                                  </div>
+                                                  <div className="onpri-library-meta">
+                                                    {image.id}
+                                                  </div>
+                                                </div>
+
+                                                <span
+                                                  className={
+                                                    isSelected
+                                                      ? "onpri-status-badge is-selected"
+                                                      : "onpri-status-badge is-empty"
+                                                  }
+                                                >
+                                                  {isSelected ? "使用可能" : "未追加"}
+                                                </span>
+                                              </label>
+                                            );
+                                          })}
+                                      </div>
+                                    </section>
                                   ) : (
-                                    <p className="onpri-upload-note">
-                                      まだ画像は紐づいていません。
-                                    </p>
+                                    <section className="onpri-name-placeholder">
+                                      <h4 className="onpri-modal-section-title">
+                                        名入れ設定
+                                      </h4>
+                                      <p>
+                                        名入れ入力欄、文字数制限、フォント、カラー、配置は次工程で追加します。
+                                      </p>
+                                    </section>
                                   )}
                                 </div>
 
-                                    <div className="onpri-edit-modal-section">
-                                      <h4>画像ライブラリ</h4>
-                                      <div className="onpri-library-grid">
-                                    {registeredImages.map((image) => {
-                                      const isSelected = editingImageIds.includes(image.id);
+                                <div className="onpri-edit-modal-footer">
+                                  <span className="onpri-footer-note">
+                                    {editingCustomizationType === "registered_image"
+                                      ? `${editingImageIds.length} 件を使用可能に設定`
+                                      : "名入れを使用"}
+                                  </span>
 
-                                      return (
-                                        <div
-                                          key={`${product.id}-library-${image.id}`}
-                                          className={
-                                            isSelected
-                                              ? "onpri-library-card is-selected"
-                                              : "onpri-library-card"
-                                          }
-                                        >
-                                          <img
-                                            src={image.imageUrl}
-                                            alt={`${image.name} サムネイル`}
-                                          />
-                                          <span>{image.name}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() => toggleEditingImageId(image.id)}
-                                          >
-                                            {isSelected ? "解除" : "追加"}
-                                          </button>
-                                        </div>
-                                      );
-                                    })}
+                                  <div className="onpri-footer-actions">
+                                    <button
+                                      type="button"
+                                      className="onpri-secondary-button"
+                                      onClick={closeProductImageEditor}
+                                    >
+                                      キャンセル
+                                    </button>
+                                    <button
+                                      type="submit"
+                                      className="onpri-primary-button"
+                                    >
+                                      保存
+                                    </button>
                                   </div>
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="onpri-edit-modal-section">
-                                    <p className="onpri-upload-note">
-                                      この商品では名入れを使用します。名入れ入力欄とプレビュー合成は次工程で実装します。
-                                    </p>
-                                  </div>
-                                )}
-
-                                <div className="onpri-edit-modal-section">
-                                  <button type="submit">保存</button>
                                 </div>
                               </Form>
                             </div>
