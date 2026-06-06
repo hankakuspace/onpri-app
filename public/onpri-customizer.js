@@ -1267,10 +1267,14 @@
     printAreaFrame.style.width = "38%";
     printAreaFrame.style.height = "48%";
     printAreaFrame.style.boxSizing = "border-box";
-    printAreaFrame.style.border = "2px solid rgba(0, 163, 255, 0.95)";
-    printAreaFrame.style.background = "rgba(0, 163, 255, 0.06)";
+    printAreaFrame.style.border = "3px dashed rgba(0, 200, 255, 1)";
+    printAreaFrame.style.background = "rgba(0, 200, 255, 0.12)";
     printAreaFrame.style.pointerEvents = "none";
-    printAreaFrame.style.zIndex = "3";
+    printAreaFrame.style.zIndex = "60";
+    printAreaFrame.style.display = "block";
+    printAreaFrame.style.outline = "2px solid rgba(255, 255, 255, 0.95)";
+    printAreaFrame.style.outlineOffset = "-4px";
+    printAreaFrame.style.boxShadow = "0 0 0 2px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 200, 255, 0.45)";
 
     if (!textValue) {
       overlay.appendChild(printAreaFrame);
