@@ -1885,6 +1885,16 @@
       return input.value.trim();
     }
 
+    updateTextPreview(
+      container,
+      "",
+      getCurrentOptions(),
+      config,
+      setting,
+      getCurrentTextValue,
+      getCurrentOptions
+    );
+
     function refreshTextCustomization() {
       var textValue = getCurrentTextValue();
       var options = getCurrentOptions();
