@@ -60,6 +60,30 @@
     });
   }
 
+  function getCustomizerState(container) {
+    if (!container.__onpriCustomizerState) {
+      container.__onpriCustomizerState = {
+        positionX: 0,
+        positionY: 0,
+        scale: 1,
+      };
+    }
+
+    return container.__onpriCustomizerState;
+  }
+
+  function clampCustomizerState(state) {
+    state.positionX = Math.max(-45, Math.min(45, state.positionX));
+    state.positionY = Math.max(-45, Math.min(45, state.positionY));
+    state.scale = Math.max(0.4, Math.min(2.5, state.scale));
+
+    return state;
+  }
+
+  function formatCustomizerNumber(value) {
+    return String(Math.round(value * 100) / 100);
+  }
+
   function getProductImageUrl() {
     var selectors = [
       ".product__media img",
@@ -191,11 +215,15 @@
     image.src = imageUrl;
     image.alt = imageName;
     image.loading = "lazy";
+    var state = clampCustomizerState(getCustomizerState(container));
+
     image.setAttribute("data-onpri-preview-overlay-image", "true");
     image.style.maxWidth = "42%";
     image.style.maxHeight = "28%";
     image.style.objectFit = "contain";
-    image.style.transform = "translateY(-4%)";
+    image.style.transform =
+      "translate(" + state.positionX + "%, " + state.positionY + "%) scale(" + state.scale + ")";
+    image.style.transformOrigin = "center center";
 
     overlayLayer.appendChild(image);
   }
@@ -218,9 +246,14 @@
       setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
       setHiddenInput(form, "properties[ONPRIブランドID]", config.product.brandId);
       setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
+      var state = clampCustomizerState(getCustomizerState(container));
+
       setHiddenInput(form, "properties[ONPRI画像ID]", setting.imageId);
       setHiddenInput(form, "properties[ONPRI画像名]", imageName);
       setHiddenInput(form, "properties[ONPRI画像URL]", imageUrl);
+      setHiddenInput(form, "properties[ONPRI位置X]", formatCustomizerNumber(state.positionX));
+      setHiddenInput(form, "properties[ONPRI位置Y]", formatCustomizerNumber(state.positionY));
+      setHiddenInput(form, "properties[ONPRI拡大率]", formatCustomizerNumber(state.scale));
     });
 
     window.__onpriCustomizerSelection = {
@@ -303,6 +336,72 @@
     return wrapper;
   }
 
+  function createPreviewControls(container) {
+    var controls = document.createElement("div");
+    controls.setAttribute("data-onpri-preview-controls", "true");
+    controls.style.display = "grid";
+    controls.style.gridTemplateColumns = "repeat(3, 1fr)";
+    controls.style.gap = "8px";
+    controls.style.margin = "12px 0 16px";
+
+    function createButton(label, action) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.style.padding = "8px";
+      button.style.border = "1px solid #dddddd";
+      button.style.background = "#ffffff";
+      button.style.cursor = "pointer";
+
+      button.addEventListener("click", function () {
+        if (!window.__onpriCustomizerSelection) {
+          return;
+        }
+
+        var state = clampCustomizerState(getCustomizerState(container));
+        action(state);
+        clampCustomizerState(state);
+
+        updatePreview(container, window.__onpriCustomizerSelection.setting);
+        applySelectionToProductForm(
+          window.__onpriCustomizerSelection.container,
+          window.__onpriCustomizerSelection.config,
+          window.__onpriCustomizerSelection.setting,
+        );
+      });
+
+      return button;
+    }
+
+    controls.appendChild(createButton("小さく", function (state) {
+      state.scale -= 0.1;
+    }));
+    controls.appendChild(createButton("上へ", function (state) {
+      state.positionY -= 5;
+    }));
+    controls.appendChild(createButton("大きく", function (state) {
+      state.scale += 0.1;
+    }));
+    controls.appendChild(createButton("左へ", function (state) {
+      state.positionX -= 5;
+    }));
+    controls.appendChild(createButton("中央", function (state) {
+      state.positionX = 0;
+      state.positionY = 0;
+      state.scale = 1;
+    }));
+    controls.appendChild(createButton("右へ", function (state) {
+      state.positionX += 5;
+    }));
+    controls.appendChild(document.createElement("span"));
+    controls.appendChild(createButton("下へ", function (state) {
+      state.positionY += 5;
+    }));
+    controls.appendChild(document.createElement("span"));
+
+    return controls;
+  }
+
   function createCustomizerOptions(container, config, settings) {
     var wrapper = document.createElement("div");
 
@@ -354,6 +453,7 @@
     }
 
     wrapper.appendChild(createPreviewArea());
+    wrapper.appendChild(createPreviewControls(container));
     wrapper.appendChild(createCustomizerOptions(container, config, config.settings));
     container.appendChild(wrapper);
   }
