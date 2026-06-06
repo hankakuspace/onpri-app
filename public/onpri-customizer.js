@@ -233,19 +233,23 @@
       mainPreviewImage.style.transformOrigin = "center center";
     }
 
-    var resizeHandle = document.querySelector("[data-onpri-main-resize-handle='true']");
-    if (resizeHandle) {
-      resizeHandle.style.left = left;
-      resizeHandle.style.top = top;
-      resizeHandle.style.transform =
-        "translate(calc(-50% + 58px * " + state.scale + "), calc(-50% + 26px * " + state.scale + "))";
-      resizeHandle.style.transformOrigin = "center center";
+    var selectionFrame = document.querySelector("[data-onpri-main-selection-frame='true']");
+    if (selectionFrame && mainPreviewImage) {
+      var width = mainPreviewImage.offsetWidth * state.scale;
+      var height = mainPreviewImage.offsetHeight * state.scale;
+
+      selectionFrame.style.left = left;
+      selectionFrame.style.top = top;
+      selectionFrame.style.width = width + "px";
+      selectionFrame.style.height = height + "px";
+      selectionFrame.style.transform = "translate(-50%, -50%)";
     }
   }
 
-  function makeMainPreviewImageDraggable(container, image, resizeHandle) {
+  function makeMainPreviewImageDraggable(container, image, resizeHandles) {
     var dragging = false;
     var resizing = false;
+    var resizeCorner = "se";
     var startX = 0;
     var startY = 0;
     var startPositionX = 0;
@@ -253,7 +257,7 @@
     var startScale = 1;
 
     image.style.pointerEvents = "auto";
-    image.style.cursor = "grab";
+    image.style.cursor = "move";
     image.style.userSelect = "none";
     image.style.touchAction = "none";
     image.style.position = "absolute";
@@ -298,9 +302,19 @@
       var state = clampCustomizerState(getCustomizerState(container));
       var deltaX = clientX - startX;
       var deltaY = clientY - startY;
-      var delta = Math.max(deltaX, deltaY);
+      var delta = 0;
 
-      state.scale = startScale + delta / 160;
+      if (resizeCorner === "se") {
+        delta = deltaX + deltaY;
+      } else if (resizeCorner === "sw") {
+        delta = -deltaX + deltaY;
+      } else if (resizeCorner === "ne") {
+        delta = deltaX - deltaY;
+      } else {
+        delta = -deltaX - deltaY;
+      }
+
+      state.scale = startScale + delta / 260;
 
       applyStateUpdate();
     }
@@ -340,7 +354,7 @@
       event.stopPropagation();
 
       dragging = false;
-      image.style.cursor = "grab";
+      image.style.cursor = "move";
 
       try {
         image.releasePointerCapture(event.pointerId);
@@ -354,12 +368,12 @@
       event.stopPropagation();
 
       dragging = false;
-      image.style.cursor = "grab";
+      image.style.cursor = "move";
     });
 
-    if (resizeHandle) {
+    resizeHandles.forEach(function (resizeHandle) {
       resizeHandle.style.pointerEvents = "auto";
-      resizeHandle.style.cursor = "nwse-resize";
+      resizeHandle.style.cursor = resizeHandle.getAttribute("data-onpri-resize-cursor") || "nwse-resize";
       resizeHandle.style.touchAction = "none";
 
       resizeHandle.addEventListener("click", function (event) {
@@ -378,6 +392,7 @@
         var state = clampCustomizerState(getCustomizerState(container));
 
         resizing = true;
+        resizeCorner = resizeHandle.getAttribute("data-onpri-resize-corner") || "se";
         startX = event.clientX;
         startY = event.clientY;
         startScale = state.scale;
@@ -414,7 +429,7 @@
 
         resizing = false;
       });
-    }
+    });
   }
 
   function syncMainProductPreviewOverlay(container, setting) {
@@ -484,23 +499,50 @@
     image.style.maxHeight = "22%";
     image.style.objectFit = "contain";
 
-    var resizeHandle = document.createElement("button");
-    resizeHandle.type = "button";
-    resizeHandle.setAttribute("data-onpri-main-resize-handle", "true");
-    resizeHandle.setAttribute("aria-label", "ロゴサイズを変更");
-    resizeHandle.style.position = "absolute";
-    resizeHandle.style.width = "18px";
-    resizeHandle.style.height = "18px";
-    resizeHandle.style.border = "2px solid #111111";
-    resizeHandle.style.background = "#ffffff";
-    resizeHandle.style.borderRadius = "50%";
-    resizeHandle.style.padding = "0";
-    resizeHandle.style.zIndex = "5";
-    resizeHandle.style.boxShadow = "0 1px 4px rgba(0, 0, 0, 0.25)";
+    var selectionFrame = document.createElement("div");
+    selectionFrame.setAttribute("data-onpri-main-selection-frame", "true");
+    selectionFrame.style.position = "absolute";
+    selectionFrame.style.border = "2px solid #00a3ff";
+    selectionFrame.style.boxSizing = "border-box";
+    selectionFrame.style.pointerEvents = "none";
+    selectionFrame.style.zIndex = "5";
 
-    makeMainPreviewImageDraggable(container, image, resizeHandle);
+    var corners = [
+      { key: "nw", cursor: "nwse-resize", left: "-6px", top: "-6px" },
+      { key: "ne", cursor: "nesw-resize", right: "-6px", top: "-6px" },
+      { key: "sw", cursor: "nesw-resize", left: "-6px", bottom: "-6px" },
+      { key: "se", cursor: "nwse-resize", right: "-6px", bottom: "-6px" },
+    ];
+
+    var resizeHandles = corners.map(function (corner) {
+      var handle = document.createElement("button");
+      handle.type = "button";
+      handle.setAttribute("data-onpri-main-resize-handle", "true");
+      handle.setAttribute("data-onpri-resize-corner", corner.key);
+      handle.setAttribute("data-onpri-resize-cursor", corner.cursor);
+      handle.setAttribute("aria-label", "ロゴサイズを変更");
+      handle.style.position = "absolute";
+      handle.style.width = "12px";
+      handle.style.height = "12px";
+      handle.style.border = "1px solid #0077cc";
+      handle.style.background = "#ffffff";
+      handle.style.padding = "0";
+      handle.style.zIndex = "6";
+      handle.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.25)";
+
+      if (corner.left) handle.style.left = corner.left;
+      if (corner.right) handle.style.right = corner.right;
+      if (corner.top) handle.style.top = corner.top;
+      if (corner.bottom) handle.style.bottom = corner.bottom;
+
+      selectionFrame.appendChild(handle);
+
+      return handle;
+    });
+
+    makeMainPreviewImageDraggable(container, image, resizeHandles);
     overlay.appendChild(image);
-    overlay.appendChild(resizeHandle);
+    overlay.appendChild(selectionFrame);
     overlayRoot.appendChild(overlay);
     applyPreviewTransforms(container);
   }
