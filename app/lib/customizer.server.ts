@@ -1,5 +1,6 @@
 // app/lib/customizer.server.ts
-import { getFirebaseDb } from "./firebase.server";
+import { randomUUID } from "node:crypto";
+import { getFirebaseDb, getFirebaseStorageBucket } from "./firebase.server";
 
 export type CustomizerImage = {
   id: string;
@@ -83,6 +84,11 @@ export type CreateCustomizerImageInput = {
   type: string;
   imageUrl: string;
   status: string;
+};
+
+export type CreateCustomizerImageUploadInput = {
+  name: string;
+  file: File;
 };
 
 export type CreateCustomizerProductInput = {
@@ -252,6 +258,90 @@ export async function getCustomizerData(): Promise<CustomizerDataResult> {
     settings,
     source: "firestore",
   };
+}
+
+export async function createCustomizerImageUpload(
+  input: CreateCustomizerImageUploadInput,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const db = getFirebaseDb();
+  const bucket = getFirebaseStorageBucket();
+
+  if (!db || !bucket) {
+    return {
+      ok: false,
+      message: "Firebase接続情報が未設定のため、登録できません。",
+    };
+  }
+
+  const file = input.file;
+  const originalFileName = file.name.trim();
+  const fallbackName = originalFileName.replace(/\.[^/.]+$/, "");
+  const name = input.name.trim() || fallbackName;
+
+  if (!file || file.size === 0) {
+    return {
+      ok: false,
+      message: "画像ファイルを選択してください。",
+    };
+  }
+
+  if (!file.type.startsWith("image/")) {
+    return {
+      ok: false,
+      message: "画像ファイルのみアップロードできます。",
+    };
+  }
+
+  if (!name) {
+    return {
+      ok: false,
+      message: "名称を入力してください。",
+    };
+  }
+
+  try {
+    const extension = originalFileName.includes(".")
+      ? originalFileName.split(".").pop()
+      : "png";
+    const id = `image-${Date.now()}`;
+    const token = randomUUID();
+    const filePath = `customizer-images/${id}.${extension}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const storageFile = bucket.file(filePath);
+
+    await storageFile.save(buffer, {
+      metadata: {
+        contentType: file.type,
+        metadata: {
+          firebaseStorageDownloadTokens: token,
+        },
+      },
+    });
+
+    const imageUrl =
+      `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket.name)}` +
+      `/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
+
+    await db.collection("customizer_images").doc(id).set({
+      name,
+      type: "登録済み画像",
+      imageUrl,
+      status: "有効",
+      originalFileName,
+      filePath,
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Failed to upload customizer_image to Firebase Storage:", error);
+
+    return {
+      ok: false,
+      message: "画像アップロードに失敗しました。",
+    };
+  }
 }
 
 export async function createCustomizerImage(

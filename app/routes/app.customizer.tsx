@@ -1,10 +1,11 @@
 // app/routes/app.customizer.tsx
+import { useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import {
-  createCustomizerImage,
+  createCustomizerImageUpload,
   createCustomizerProduct,
   createCustomizerProductSetting,
   getCustomizerData,
@@ -26,12 +27,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = String(formData.get("intent") ?? "");
 
   if (intent === "create-customizer-image") {
-    const result = await createCustomizerImage({
-      id: String(formData.get("id") ?? ""),
+    const imageFile = formData.get("imageFile");
+
+    if (!(imageFile instanceof File)) {
+      return {
+        ok: false,
+        message: "画像ファイルを選択してください。",
+      };
+    }
+
+    const result = await createCustomizerImageUpload({
       name: String(formData.get("name") ?? ""),
-      type: String(formData.get("type") ?? ""),
-      imageUrl: String(formData.get("imageUrl") ?? ""),
-      status: String(formData.get("status") ?? ""),
+      file: imageFile,
     });
 
     if (!result.ok) {
@@ -40,7 +47,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return {
       ok: true,
-      message: "登録済み画像を保存しました。",
+      message: "登録済み画像をアップロードしました。",
     };
   }
 
@@ -92,8 +99,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CustomizerPage() {
-  const { images, products, settings, source } = useLoaderData<typeof loader>();
+  const { images, products, settings } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const [activeSection, setActiveSection] = useState("create-image");
+
+  const menuItems = [
+    { id: "create-image", label: "登録済み画像を追加" },
+    { id: "images", label: "登録済み画像・入力項目" },
+    { id: "create-product", label: "対象商品を追加" },
+    { id: "products", label: "対象商品" },
+    { id: "create-setting", label: "商品別カスタマイズ設定を追加" },
+    { id: "settings", label: "商品別カスタマイズ設定" },
+  ];
   const productById = new Map(products.map((product) => [product.id, product]));
   const imageById = new Map(images.map((image) => [image.id, image]));
 
@@ -129,62 +146,70 @@ export default function CustomizerPage() {
           .onpri-admin-table tr:last-child td {
             border-bottom: none;
           }
+
+          .onpri-customizer-menu {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 0 20px;
+          }
+
+          .onpri-customizer-menu button {
+            padding: 8px 12px;
+            border: 1px solid #d6d6d6;
+            border-radius: 999px;
+            background: #fff;
+            cursor: pointer;
+          }
+
+          .onpri-customizer-menu button.is-active {
+            border-color: #111;
+            background: #111;
+            color: #fff;
+          }
         `}
       </style>
-      <s-section heading="検証方針">
-        <s-paragraph>
-          ONPRI独自カスタマイズ機能の管理画面です。登録済み画像、商品別設定、Canvasプレビュー、注文情報保存を段階的に実装します。
-        </s-paragraph>
-      </s-section>
+      <div className="onpri-customizer-menu">
+        {menuItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={activeSection === item.id ? "is-active" : ""}
+            onClick={() => setActiveSection(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-      <s-section heading="データ取得状態">
-        <s-paragraph>
-          {source === "firestore"
-            ? "Firestoreからデータを取得しています。"
-            : "Firebase接続情報が未設定、またはFirestoreから取得できないため、fallbackデータを表示しています。"}
-        </s-paragraph>
-      </s-section>
-
-      <s-section heading="登録済み画像を追加">
+      {activeSection === "create-image" ? (
+        <s-section heading="登録済み画像を追加">
         {actionData?.message ? (
           <s-paragraph>{actionData.message}</s-paragraph>
         ) : null}
 
-        <Form method="post">
+        <Form method="post" encType="multipart/form-data">
           <input type="hidden" name="intent" value="create-customizer-image" />
 
           <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
             <label>
-              <div>ID</div>
-              <input name="id" defaultValue="logo-02" placeholder="例: logo-02" required />
+              <div>画像ファイル</div>
+              <input name="imageFile" type="file" accept="image/*" required />
             </label>
 
             <label>
               <div>名称</div>
-              <input name="name" defaultValue="ONPRIサンプルロゴ" placeholder="例: ONPRIサンプルロゴ" required />
+              <input name="name" placeholder="未入力の場合はファイル名を使用" />
             </label>
 
-            <label>
-              <div>種別</div>
-              <input name="type" defaultValue="登録済み画像" placeholder="例: 登録済み画像" required />
-            </label>
-
-            <label>
-              <div>画像URL</div>
-              <input name="imageUrl" placeholder="未設定の場合は空欄でOK" />
-            </label>
-
-            <label>
-              <div>状態</div>
-              <input name="status" defaultValue="検証用" required />
-            </label>
-
-            <button type="submit">登録済み画像を保存</button>
+            <button type="submit">登録済み画像をアップロード</button>
           </div>
         </Form>
       </s-section>
+      ) : null}
 
-      <s-section heading="登録済み画像・入力項目">
+      {activeSection === "images" ? (
+        <s-section heading="登録済み画像・入力項目">
         <div className="onpri-admin-table-wrap">
           <table className="onpri-admin-table">
             <thead>
@@ -210,8 +235,10 @@ export default function CustomizerPage() {
           </table>
         </div>
       </s-section>
+      ) : null}
 
-      <s-section heading="対象商品を追加">
+      {activeSection === "create-product" ? (
+        <s-section heading="対象商品を追加">
         <Form method="post">
           <input type="hidden" name="intent" value="create-customizer-product" />
 
@@ -250,8 +277,10 @@ export default function CustomizerPage() {
           </div>
         </Form>
       </s-section>
+      ) : null}
 
-      <s-section heading="対象商品">
+      {activeSection === "products" ? (
+        <s-section heading="対象商品">
         <div className="onpri-admin-table-wrap">
           <table className="onpri-admin-table">
             <thead>
@@ -279,8 +308,10 @@ export default function CustomizerPage() {
           </table>
         </div>
       </s-section>
+      ) : null}
 
-      <s-section heading="商品別カスタマイズ設定を追加">
+      {activeSection === "create-setting" ? (
+        <s-section heading="商品別カスタマイズ設定を追加">
         <s-paragraph>
           同じ対象商品IDに対して、複数の画像・入力項目を追加できます。
         </s-paragraph>
@@ -343,8 +374,10 @@ export default function CustomizerPage() {
           </div>
         </Form>
       </s-section>
+      ) : null}
 
-      <s-section heading="商品別カスタマイズ設定">
+      {activeSection === "settings" ? (
+        <s-section heading="商品別カスタマイズ設定">
         <div className="onpri-admin-table-wrap">
           <table className="onpri-admin-table">
             <thead>
@@ -404,16 +437,9 @@ export default function CustomizerPage() {
           </table>
         </div>
       </s-section>
+      ) : null}
 
-      <s-section heading="次の実装予定">
-        <ul>
-          <s-list-item>登録済み画像の管理</s-list-item>
-          <s-list-item>商品別カスタマイズ設定</s-list-item>
-          <s-list-item>ストアフロント表示用UI</s-list-item>
-          <s-list-item>Canvasプレビュー生成</s-list-item>
-          <s-list-item>line item properties への保存</s-list-item>
-        </ul>
-      </s-section>
+
     </s-page>
   );
 }
