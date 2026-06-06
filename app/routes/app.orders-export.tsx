@@ -372,7 +372,7 @@ export default function OrdersExportPage() {
             <s-paragraph>
               取得対象は直近50件の注文です。ONPRI項目が入っている明細のみ、下部に確認用として表示しています。
             </s-paragraph>
-            <a href="/app/orders-export?download=1" target="_blank" rel="noreferrer">
+            <a href="/app/orders-export?download=1&shop=onpri.myshopify.com">
               CSVをダウンロード
             </a>
           </s-stack>
