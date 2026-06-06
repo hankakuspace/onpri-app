@@ -1006,7 +1006,9 @@
     };
 
     return true;
-  }\n\n  function applyTextSelectionToProductForm(container, config, setting, textValue) {
+  }
+
+  function applyTextSelectionToProductForm(container, config, setting, textValue) {
     var forms = findProductForms(container);
 
     if (!forms.length) {
