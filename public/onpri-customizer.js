@@ -60,6 +60,29 @@
     });
   }
 
+  function getProductImageUrl() {
+    var selectors = [
+      ".product__media img",
+      ".product-media-container img",
+      ".product__media-list img",
+      ".product img",
+    ];
+
+    for (var index = 0; index < selectors.length; index += 1) {
+      var image = document.querySelector(selectors[index]);
+
+      if (image) {
+        var imageUrl = image.currentSrc || image.src || "";
+
+        if (imageUrl) {
+          return imageUrl;
+        }
+      }
+    }
+
+    return "";
+  }
+
   function createPreviewArea() {
     var previewWrapper = document.createElement("div");
     previewWrapper.setAttribute("data-onpri-preview-wrapper", "true");
@@ -84,6 +107,33 @@
     previewCanvas.style.alignItems = "center";
     previewCanvas.style.justifyContent = "center";
 
+    var productImageUrl = getProductImageUrl();
+
+    if (productImageUrl) {
+      var productImage = document.createElement("img");
+      productImage.src = productImageUrl;
+      productImage.alt = "商品画像";
+      productImage.loading = "lazy";
+      productImage.setAttribute("data-onpri-preview-product-image", "true");
+      productImage.style.position = "absolute";
+      productImage.style.inset = "0";
+      productImage.style.width = "100%";
+      productImage.style.height = "100%";
+      productImage.style.objectFit = "contain";
+      productImage.style.zIndex = "1";
+      previewCanvas.appendChild(productImage);
+    }
+
+    var overlayLayer = document.createElement("div");
+    overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
+    overlayLayer.style.position = "absolute";
+    overlayLayer.style.inset = "0";
+    overlayLayer.style.display = "flex";
+    overlayLayer.style.alignItems = "center";
+    overlayLayer.style.justifyContent = "center";
+    overlayLayer.style.zIndex = "2";
+    previewCanvas.appendChild(overlayLayer);
+
     var placeholder = document.createElement("p");
     placeholder.setAttribute("data-onpri-preview-placeholder", "true");
     placeholder.textContent = "画像を選択するとプレビューが表示されます。";
@@ -92,7 +142,7 @@
     placeholder.style.fontSize = "14px";
     placeholder.style.textAlign = "center";
 
-    previewCanvas.appendChild(placeholder);
+    overlayLayer.appendChild(placeholder);
     previewWrapper.appendChild(previewTitle);
     previewWrapper.appendChild(previewCanvas);
 
@@ -106,7 +156,21 @@
       return;
     }
 
-    previewCanvas.innerHTML = "";
+    var overlayLayer = previewCanvas.querySelector("[data-onpri-preview-overlay-layer]");
+
+    if (!overlayLayer) {
+      overlayLayer = document.createElement("div");
+      overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
+      overlayLayer.style.position = "absolute";
+      overlayLayer.style.inset = "0";
+      overlayLayer.style.display = "flex";
+      overlayLayer.style.alignItems = "center";
+      overlayLayer.style.justifyContent = "center";
+      overlayLayer.style.zIndex = "2";
+      previewCanvas.appendChild(overlayLayer);
+    }
+
+    overlayLayer.innerHTML = "";
 
     var imageUrl = setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
     var imageName = setting.image && setting.image.name ? setting.image.name : "選択画像";
@@ -119,7 +183,7 @@
       placeholder.style.color = "#666666";
       placeholder.style.fontSize = "14px";
       placeholder.style.textAlign = "center";
-      previewCanvas.appendChild(placeholder);
+      overlayLayer.appendChild(placeholder);
       return;
     }
 
@@ -127,11 +191,13 @@
     image.src = imageUrl;
     image.alt = imageName;
     image.loading = "lazy";
-    image.style.maxWidth = "55%";
-    image.style.maxHeight = "45%";
+    image.setAttribute("data-onpri-preview-overlay-image", "true");
+    image.style.maxWidth = "42%";
+    image.style.maxHeight = "28%";
     image.style.objectFit = "contain";
+    image.style.transform = "translateY(-4%)";
 
-    previewCanvas.appendChild(image);
+    overlayLayer.appendChild(image);
   }
 
 
