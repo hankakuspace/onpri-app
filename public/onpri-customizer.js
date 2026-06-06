@@ -213,7 +213,8 @@
     var state = clampCustomizerState(getCustomizerState(container));
     var left = "calc(50% + " + state.positionX + "%)";
     var top = "calc(50% + " + state.positionY + "%)";
-    var transform = "translate(-50%, -50%) scale(" + state.scale + ")";
+    var baseWidthPercent = 32;
+    var width = (baseWidthPercent * state.scale) + "%";
 
     syncSmallPreviewOverlayBounds(container);
 
@@ -221,7 +222,11 @@
     if (smallPreviewImage) {
       smallPreviewImage.style.left = left;
       smallPreviewImage.style.top = top;
-      smallPreviewImage.style.transform = transform;
+      smallPreviewImage.style.width = width;
+      smallPreviewImage.style.maxWidth = "none";
+      smallPreviewImage.style.maxHeight = "none";
+      smallPreviewImage.style.height = "auto";
+      smallPreviewImage.style.transform = "translate(-50%, -50%)";
       smallPreviewImage.style.transformOrigin = "center center";
     }
 
@@ -229,19 +234,20 @@
     if (mainPreviewImage) {
       mainPreviewImage.style.left = left;
       mainPreviewImage.style.top = top;
-      mainPreviewImage.style.transform = transform;
+      mainPreviewImage.style.width = width;
+      mainPreviewImage.style.maxWidth = "none";
+      mainPreviewImage.style.maxHeight = "none";
+      mainPreviewImage.style.height = "auto";
+      mainPreviewImage.style.transform = "translate(-50%, -50%)";
       mainPreviewImage.style.transformOrigin = "center center";
     }
 
     var selectionFrame = document.querySelector("[data-onpri-main-selection-frame='true']");
     if (selectionFrame && mainPreviewImage) {
-      var width = mainPreviewImage.offsetWidth * state.scale;
-      var height = mainPreviewImage.offsetHeight * state.scale;
-
       selectionFrame.style.left = left;
       selectionFrame.style.top = top;
-      selectionFrame.style.width = width + "px";
-      selectionFrame.style.height = height + "px";
+      selectionFrame.style.width = mainPreviewImage.offsetWidth + "px";
+      selectionFrame.style.height = mainPreviewImage.offsetHeight + "px";
       selectionFrame.style.transform = "translate(-50%, -50%)";
     }
   }
