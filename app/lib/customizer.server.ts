@@ -87,7 +87,6 @@ export type CreateCustomizerImageInput = {
 };
 
 export type CreateCustomizerImageUploadInput = {
-  name: string;
   file: File;
 };
 
@@ -276,7 +275,7 @@ export async function createCustomizerImageUpload(
   const file = input.file;
   const originalFileName = file.name.trim();
   const fallbackName = originalFileName.replace(/\.[^/.]+$/, "");
-  const name = input.name.trim() || fallbackName;
+  const name = fallbackName;
 
   if (!file || file.size === 0) {
     return {

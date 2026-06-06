@@ -27,27 +27,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = String(formData.get("intent") ?? "");
 
   if (intent === "create-customizer-image") {
-    const imageFile = formData.get("imageFile");
+    const imageFiles = formData
+      .getAll("imageFiles")
+      .filter((file): file is File => file instanceof File && file.size > 0);
 
-    if (!(imageFile instanceof File)) {
+    if (imageFiles.length === 0) {
       return {
         ok: false,
         message: "画像ファイルを選択してください。",
       };
     }
 
-    const result = await createCustomizerImageUpload({
-      name: String(formData.get("name") ?? ""),
-      file: imageFile,
-    });
+    for (const imageFile of imageFiles) {
+      const result = await createCustomizerImageUpload({
+        file: imageFile,
+      });
 
-    if (!result.ok) {
-      return result;
+      if (!result.ok) {
+        return result;
+      }
     }
 
     return {
       ok: true,
-      message: "登録済み画像をアップロードしました。",
+      message: `${imageFiles.length}件の登録済み画像をアップロードしました。`,
     };
   }
 
@@ -167,6 +170,26 @@ export default function CustomizerPage() {
             background: #111;
             color: #fff;
           }
+
+          .onpri-upload-box {
+            display: grid;
+            gap: 8px;
+            padding: 28px;
+            border: 2px dashed #c9c9c9;
+            border-radius: 12px;
+            background: #fafafa;
+            text-align: center;
+          }
+
+          .onpri-upload-box input {
+            margin: 0 auto;
+          }
+
+          .onpri-upload-note {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -192,14 +215,12 @@ export default function CustomizerPage() {
           <input type="hidden" name="intent" value="create-customizer-image" />
 
           <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
-            <label>
-              <div>画像ファイル</div>
-              <input name="imageFile" type="file" accept="image/*" required />
-            </label>
-
-            <label>
-              <div>名称</div>
-              <input name="name" placeholder="未入力の場合はファイル名を使用" />
+            <label className="onpri-upload-box">
+              <strong>画像ファイルをドラッグ＆ドロップ、または選択</strong>
+              <input name="imageFiles" type="file" accept="image/*" multiple required />
+              <span className="onpri-upload-note">
+                複数画像をまとめて登録できます。名称はファイル名から自動登録されます。
+              </span>
             </label>
 
             <button type="submit">登録済み画像をアップロード</button>
