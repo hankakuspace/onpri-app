@@ -901,12 +901,13 @@
     textPreview.style.left = "50%";
     textPreview.style.top = "50%";
     textPreview.style.transform = "translate(-50%, -50%)";
-    textPreview.style.maxWidth = "70%";
+    textPreview.style.maxWidth = "80%";
     textPreview.style.textAlign = "center";
-    textPreview.style.fontSize = "32px";
+    textPreview.style.fontSize = "clamp(22px, 6vw, 42px)";
     textPreview.style.fontWeight = "700";
     textPreview.style.lineHeight = "1.2";
-    textPreview.style.color = "#111111";
+    textPreview.style.color = "#ffffff";
+    textPreview.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.45)";
     textPreview.style.whiteSpace = "pre-wrap";
     textPreview.style.wordBreak = "break-word";
     textPreview.style.pointerEvents = "none";
