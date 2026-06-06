@@ -1301,7 +1301,7 @@
     note.style.color = "#666666";
 
     var output = document.createElement("p");
-    var previewWrapper = createPreviewWrapper(config);
+    var previewWrapper = createPreviewArea();
     wrapper.appendChild(previewWrapper);
     updateTextPreview(container, "");
 
@@ -1466,7 +1466,8 @@
         .then(function (config) {
           renderCustomizer(container, config);
         })
-        .catch(function () {
+        .catch(function (error) {
+          console.error("ONPRI Customizer failed:", error);
           renderError(container);
         });
     });
