@@ -825,8 +825,9 @@ export default function CustomizerPage() {
                                 </div>
 
                                 {editingCustomizationType === "registered_image" ? (
-                                  <div className="onpri-edit-modal-section">
-                                    <h4>使用可能な画像</h4>
+                                  <> 
+                                    <div className="onpri-edit-modal-section">
+                                      <h4>使用可能な画像</h4>
                                   {editingImageIds.length > 0 ? (
                                     <div className="onpri-assigned-images">
                                       {registeredImages
@@ -859,9 +860,9 @@ export default function CustomizerPage() {
                                   )}
                                 </div>
 
-                                <div className="onpri-edit-modal-section">
-                                  <h4>画像ライブラリ</h4>
-                                  <div className="onpri-library-grid">
+                                    <div className="onpri-edit-modal-section">
+                                      <h4>画像ライブラリ</h4>
+                                      <div className="onpri-library-grid">
                                     {registeredImages.map((image) => {
                                       const isSelected = editingImageIds.includes(image.id);
 
@@ -889,8 +890,8 @@ export default function CustomizerPage() {
                                       );
                                     })}
                                   </div>
-                                </div>
-
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="onpri-edit-modal-section">
                                     <p className="onpri-upload-note">
