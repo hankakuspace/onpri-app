@@ -139,11 +139,83 @@
     );
   }
 
+  function getRenderedImageArea(root, image) {
+    var rootRect = root.getBoundingClientRect();
+    var imageRect = image.getBoundingClientRect();
+
+    var elementLeft = imageRect.left - rootRect.left;
+    var elementTop = imageRect.top - rootRect.top;
+    var elementWidth = imageRect.width;
+    var elementHeight = imageRect.height;
+
+    var naturalWidth = image.naturalWidth || elementWidth;
+    var naturalHeight = image.naturalHeight || elementHeight;
+
+    if (!naturalWidth || !naturalHeight || !elementWidth || !elementHeight) {
+      return {
+        left: elementLeft,
+        top: elementTop,
+        width: elementWidth,
+        height: elementHeight,
+      };
+    }
+
+    var elementRatio = elementWidth / elementHeight;
+    var imageRatio = naturalWidth / naturalHeight;
+
+    var renderedWidth = elementWidth;
+    var renderedHeight = elementHeight;
+    var offsetLeft = 0;
+    var offsetTop = 0;
+
+    if (imageRatio > elementRatio) {
+      renderedHeight = elementWidth / imageRatio;
+      offsetTop = (elementHeight - renderedHeight) / 2;
+    } else {
+      renderedWidth = elementHeight * imageRatio;
+      offsetLeft = (elementWidth - renderedWidth) / 2;
+    }
+
+    return {
+      left: elementLeft + offsetLeft,
+      top: elementTop + offsetTop,
+      width: renderedWidth,
+      height: renderedHeight,
+    };
+  }
+
+  function positionOverlayOnImageArea(overlay, image, root) {
+    if (!overlay || !image || !root) {
+      return;
+    }
+
+    var area = getRenderedImageArea(root, image);
+
+    overlay.style.left = area.left + "px";
+    overlay.style.top = area.top + "px";
+    overlay.style.width = area.width + "px";
+    overlay.style.height = area.height + "px";
+  }
+
+  function syncSmallPreviewOverlayBounds(container) {
+    var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
+    var productImage = container.querySelector("[data-onpri-preview-product-image='true']");
+    var overlayLayer = container.querySelector("[data-onpri-preview-overlay-layer]");
+
+    if (!previewCanvas || !productImage || !overlayLayer) {
+      return;
+    }
+
+    positionOverlayOnImageArea(overlayLayer, productImage, previewCanvas);
+  }
+
   function applyPreviewTransforms(container) {
     var state = clampCustomizerState(getCustomizerState(container));
     var left = "calc(50% + " + state.positionX + "%)";
     var top = "calc(50% + " + state.positionY + "%)";
     var transform = "translate(-50%, -50%) scale(" + state.scale + ")";
+
+    syncSmallPreviewOverlayBounds(container);
 
     var smallPreviewImage = container.querySelector("[data-onpri-preview-overlay-image='true']");
     if (smallPreviewImage) {
@@ -288,10 +360,11 @@
     var overlay = document.createElement("div");
     overlay.setAttribute("data-onpri-main-preview-overlay", "true");
     overlay.style.position = "absolute";
-    overlay.style.inset = "0";
     overlay.style.display = "block";
     overlay.style.pointerEvents = "auto";
     overlay.style.zIndex = "20";
+
+    positionOverlayOnImageArea(overlay, mainImage, overlayRoot);
 
     overlay.addEventListener("click", function (event) {
       event.preventDefault();
@@ -313,8 +386,8 @@
     image.loading = "lazy";
     image.setAttribute("data-onpri-main-preview-image", "true");
     image.style.position = "absolute";
-    image.style.maxWidth = "28%";
-    image.style.maxHeight = "18%";
+    image.style.maxWidth = "32%";
+    image.style.maxHeight = "22%";
     image.style.objectFit = "contain";
 
     makeMainPreviewImageDraggable(container, image);
@@ -343,9 +416,7 @@
     previewCanvas.style.border = "1px solid #eeeeee";
     previewCanvas.style.background = "#ffffff";
     previewCanvas.style.overflow = "hidden";
-    previewCanvas.style.display = "flex";
-    previewCanvas.style.alignItems = "center";
-    previewCanvas.style.justifyContent = "center";
+    previewCanvas.style.display = "block";
 
     var productImageUrl = getProductImageUrl();
 
@@ -361,17 +432,23 @@
       productImage.style.height = "100%";
       productImage.style.objectFit = "contain";
       productImage.style.zIndex = "1";
+      productImage.addEventListener("load", function () {
+        var customizerContainer = previewWrapper.closest("[data-onpri-customizer]");
+
+        if (customizerContainer) {
+          syncSmallPreviewOverlayBounds(customizerContainer);
+          applyPreviewTransforms(customizerContainer);
+        }
+      });
       previewCanvas.appendChild(productImage);
     }
 
     var overlayLayer = document.createElement("div");
     overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
     overlayLayer.style.position = "absolute";
-    overlayLayer.style.inset = "0";
-    overlayLayer.style.display = "flex";
-    overlayLayer.style.alignItems = "center";
-    overlayLayer.style.justifyContent = "center";
+    overlayLayer.style.display = "block";
     overlayLayer.style.zIndex = "2";
+    overlayLayer.style.pointerEvents = "none";
     previewCanvas.appendChild(overlayLayer);
 
     var placeholder = document.createElement("p");
@@ -381,6 +458,10 @@
     placeholder.style.color = "#666666";
     placeholder.style.fontSize = "14px";
     placeholder.style.textAlign = "center";
+    placeholder.style.position = "absolute";
+    placeholder.style.left = "50%";
+    placeholder.style.top = "50%";
+    placeholder.style.transform = "translate(-50%, -50%)";
 
     overlayLayer.appendChild(placeholder);
     previewWrapper.appendChild(previewTitle);
@@ -402,13 +483,14 @@
       overlayLayer = document.createElement("div");
       overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
       overlayLayer.style.position = "absolute";
-      overlayLayer.style.inset = "0";
       overlayLayer.style.display = "block";
       overlayLayer.style.zIndex = "2";
+      overlayLayer.style.pointerEvents = "none";
       previewCanvas.appendChild(overlayLayer);
     }
 
     overlayLayer.innerHTML = "";
+    syncSmallPreviewOverlayBounds(container);
 
     var imageUrl = setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
     var imageName = setting.image && setting.image.name ? setting.image.name : "選択画像";
@@ -421,6 +503,10 @@
       placeholder.style.color = "#666666";
       placeholder.style.fontSize = "14px";
       placeholder.style.textAlign = "center";
+      placeholder.style.position = "absolute";
+      placeholder.style.left = "50%";
+      placeholder.style.top = "50%";
+      placeholder.style.transform = "translate(-50%, -50%)";
       overlayLayer.appendChild(placeholder);
       syncMainProductPreviewOverlay(container, setting);
       return;
@@ -432,8 +518,8 @@
     image.loading = "lazy";
     image.setAttribute("data-onpri-preview-overlay-image", "true");
     image.style.position = "absolute";
-    image.style.maxWidth = "42%";
-    image.style.maxHeight = "28%";
+    image.style.maxWidth = "32%";
+    image.style.maxHeight = "22%";
     image.style.objectFit = "contain";
 
     overlayLayer.appendChild(image);
