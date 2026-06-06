@@ -1092,6 +1092,150 @@ export default function CustomizerPage() {
           .onpri-danger-button:hover {
             background: #fff4f4;
           }
+
+          .onpri-admin-page {
+            max-width: none;
+            width: 100%;
+          }
+
+          .onpri-admin-section {
+            width: 100%;
+            border: 1px solid #dcdfe3;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+          }
+
+          .onpri-admin-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #dcdfe3;
+            background: #ffffff;
+          }
+
+          .onpri-admin-section-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #202223;
+          }
+
+          .onpri-admin-section-description {
+            margin: 2px 0 0;
+            color: #616161;
+            font-size: 13px;
+          }
+
+          .onpri-admin-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .onpri-admin-toolbar-button {
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid #c9cccf;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #202223;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .onpri-admin-toolbar-button:hover {
+            background: #f6f6f7;
+          }
+
+          .onpri-admin-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            background: #ffffff;
+          }
+
+          .onpri-admin-table {
+            width: 100%;
+            min-width: 920px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+          }
+
+          .onpri-admin-table thead th {
+            padding: 10px 12px;
+            border-bottom: 1px solid #dcdfe3;
+            background: #f7f7f7;
+            color: #616161;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: left;
+            white-space: nowrap;
+          }
+
+          .onpri-admin-table tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ebebeb;
+            color: #202223;
+            vertical-align: middle;
+          }
+
+          .onpri-admin-table tbody tr:last-child td {
+            border-bottom: 0;
+          }
+
+          .onpri-admin-table tbody tr:hover td {
+            background: #f9fafb;
+          }
+
+          .onpri-admin-table .onpri-product-image {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            border: 1px solid #dcdfe3;
+            border-radius: 8px;
+            background: #ffffff;
+          }
+
+          .onpri-admin-table .onpri-assigned-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+          }
+
+          .onpri-admin-table .onpri-assigned-image {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border: 1px solid #dcdfe3;
+            border-radius: 8px;
+            background: #ffffff;
+          }
+
+          .onpri-admin-edit-button {
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid #8c9196;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #202223;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .onpri-admin-edit-button:hover {
+            background: #f6f6f7;
+          }
+
+          .onpri-muted-text {
+            color: #6d7175;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -1108,13 +1252,26 @@ export default function CustomizerPage() {
       </div>
 
       {activeSection === "shopify-products" ? (
-        <s-section heading="Shopify商品設定">
-          <s-paragraph>
-            Shopify商品ごとに、商品詳細で使えるカスタマイズ項目を設定します。
-          </s-paragraph>
+        <div className="onpri-admin-section">
+          <div className="onpri-admin-section-header">
+            <div>
+              <h2 className="onpri-admin-section-title">Shopify商品設定</h2>
+              <p className="onpri-admin-section-description">
+                Shopify商品ごとに、商品詳細で使えるカスタマイズ項目を設定します。
+              </p>
+            </div>
+
+            <div className="onpri-admin-toolbar">
+              <button type="button" className="onpri-admin-toolbar-button">
+                すべて
+              </button>
+            </div>
+          </div>
 
           {shopifyProducts.length === 0 ? (
-            <s-paragraph>Shopify商品が見つかりませんでした。</s-paragraph>
+            <div style={{ padding: "16px" }}>
+              <p className="onpri-muted-text">Shopify商品が見つかりませんでした。</p>
+            </div>
           ) : (
             <div className="onpri-admin-table-wrap">
               <table className="onpri-admin-table">
@@ -1178,6 +1335,7 @@ export default function CustomizerPage() {
                         <td>
                           <button
                             type="button"
+                            className="onpri-admin-edit-button"
                             onClick={() =>
                               openProductImageEditor(
                                 product.id,
@@ -1517,7 +1675,7 @@ export default function CustomizerPage() {
               </table>
             </div>
           )}
-        </s-section>
+        </div>
       ) : null}
 
       {activeSection === "create-image" ? (
