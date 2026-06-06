@@ -436,6 +436,7 @@ export default function OrdersExportPage() {
                     <th>商品名</th>
                     <th>ONPRIブランドID</th>
                     <th>ONPRI画像名</th>
+                    <th>プレビュー</th>
                     <th>ONPRIプレビュー画像URL</th>
                   </tr>
                 </thead>
@@ -446,6 +447,30 @@ export default function OrdersExportPage() {
                       <td>{row.lineItemName}</td>
                       <td>{row.onpriBrandId}</td>
                       <td>{row.onpriImageName}</td>
+                      <td>
+                        {row.onpriPreviewImageUrl ? (
+                          <a
+                            href={row.onpriPreviewImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              src={row.onpriPreviewImageUrl}
+                              alt={`${row.orderName} ${row.lineItemName} ONPRIプレビュー`}
+                              style={{
+                                width: "96px",
+                                height: "96px",
+                                objectFit: "contain",
+                                border: "1px solid #ddd",
+                                borderRadius: "8px",
+                                background: "#fff",
+                              }}
+                            />
+                          </a>
+                        ) : (
+                          <span>未生成</span>
+                        )}
+                      </td>
                       <td>
                         {row.onpriPreviewImageUrl ? (
                           <a
