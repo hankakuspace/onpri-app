@@ -2,7 +2,7 @@
 
 client_id = "2b809e5cd8960bbd40fa7f64e44ce51b"
 name = "onpri-app"
-application_url = "https://example.com"
+application_url = "https://enb-environmental-skins-towns.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -45,8 +45,7 @@ api_version = "2026-07"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://enb-environmental-skins-towns.trycloudflare.com/auth/callback" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
