@@ -149,7 +149,15 @@
     image.style.pointerEvents = "auto";
     image.style.cursor = "grab";
     image.style.userSelect = "none";
+    image.style.touchAction = "none";
+    image.style.position = "relative";
+    image.style.zIndex = "4";
     image.draggable = false;
+
+    image.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
 
     function updateFromPointer(clientX, clientY) {
       var state = clampCustomizerState(getCustomizerState(container));
@@ -169,6 +177,9 @@
     }
 
     image.addEventListener("pointerdown", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
       if (!window.__onpriCustomizerSelection) {
         return;
       }
@@ -191,11 +202,15 @@
         return;
       }
 
-      updateFromPointer(event.clientX, event.clientY);
       event.preventDefault();
+      event.stopPropagation();
+      updateFromPointer(event.clientX, event.clientY);
     });
 
     image.addEventListener("pointerup", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
       dragging = false;
       image.style.cursor = "grab";
 
@@ -206,7 +221,10 @@
       }
     });
 
-    image.addEventListener("pointercancel", function () {
+    image.addEventListener("pointercancel", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
       dragging = false;
       image.style.cursor = "grab";
     });
