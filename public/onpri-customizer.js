@@ -544,20 +544,32 @@
     ];
 
     var resizeHandles = corners.map(function (corner) {
-      var handle = document.createElement("button");
-      handle.type = "button";
+      var handle = document.createElement("span");
       handle.setAttribute("data-onpri-main-resize-handle", "true");
       handle.setAttribute("data-onpri-resize-corner", corner.key);
       handle.setAttribute("data-onpri-resize-cursor", corner.cursor);
       handle.setAttribute("aria-label", "ロゴサイズを変更");
+      handle.setAttribute("role", "button");
       handle.style.position = "absolute";
+      handle.style.display = "block";
       handle.style.width = "12px";
       handle.style.height = "12px";
+      handle.style.minWidth = "12px";
+      handle.style.minHeight = "12px";
+      handle.style.maxWidth = "12px";
+      handle.style.maxHeight = "12px";
       handle.style.border = "1px solid #0077cc";
       handle.style.background = "#ffffff";
       handle.style.padding = "0";
+      handle.style.margin = "0";
+      handle.style.boxSizing = "border-box";
+      handle.style.borderRadius = "0";
+      handle.style.lineHeight = "0";
+      handle.style.fontSize = "0";
       handle.style.zIndex = "6";
       handle.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.25)";
+      handle.style.appearance = "none";
+      handle.style.webkitAppearance = "none";
 
       overlay.appendChild(handle);
 
