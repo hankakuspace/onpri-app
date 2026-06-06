@@ -139,6 +139,29 @@
     );
   }
 
+  function applyPreviewTransforms(container) {
+    var state = clampCustomizerState(getCustomizerState(container));
+    var left = "calc(50% + " + state.positionX + "%)";
+    var top = "calc(50% + " + state.positionY + "%)";
+    var transform = "translate(-50%, -50%) scale(" + state.scale + ")";
+
+    var smallPreviewImage = container.querySelector("[data-onpri-preview-overlay-image='true']");
+    if (smallPreviewImage) {
+      smallPreviewImage.style.left = left;
+      smallPreviewImage.style.top = top;
+      smallPreviewImage.style.transform = transform;
+      smallPreviewImage.style.transformOrigin = "center center";
+    }
+
+    var mainPreviewImage = document.querySelector("[data-onpri-main-preview-image='true']");
+    if (mainPreviewImage) {
+      mainPreviewImage.style.left = left;
+      mainPreviewImage.style.top = top;
+      mainPreviewImage.style.transform = transform;
+      mainPreviewImage.style.transformOrigin = "center center";
+    }
+  }
+
   function makeMainPreviewImageDraggable(container, image) {
     var dragging = false;
     var startX = 0;
@@ -150,7 +173,7 @@
     image.style.cursor = "grab";
     image.style.userSelect = "none";
     image.style.touchAction = "none";
-    image.style.position = "relative";
+    image.style.position = "absolute";
     image.style.zIndex = "4";
     image.draggable = false;
 
@@ -163,12 +186,18 @@
       var state = clampCustomizerState(getCustomizerState(container));
       var deltaX = clientX - startX;
       var deltaY = clientY - startY;
+      var root = image.closest("[data-onpri-main-preview-overlay='true']") || image.parentElement;
+      var rect = root ? root.getBoundingClientRect() : null;
 
-      state.positionX = startPositionX + deltaX / 4;
-      state.positionY = startPositionY + deltaY / 4;
+      if (!rect || rect.width === 0 || rect.height === 0) {
+        return;
+      }
+
+      state.positionX = startPositionX + (deltaX / rect.width) * 100;
+      state.positionY = startPositionY + (deltaY / rect.height) * 100;
 
       clampCustomizerState(state);
-      updatePreview(container, window.__onpriCustomizerSelection.setting);
+      applyPreviewTransforms(container);
       applySelectionToProductForm(
         window.__onpriCustomizerSelection.container,
         window.__onpriCustomizerSelection.config,
@@ -194,7 +223,6 @@
 
       image.style.cursor = "grabbing";
       image.setPointerCapture(event.pointerId);
-      event.preventDefault();
     });
 
     image.addEventListener("pointermove", function (event) {
@@ -251,7 +279,6 @@
     }
 
     var imageName = setting && setting.image && setting.image.name ? setting.image.name : "選択画像";
-    var state = clampCustomizerState(getCustomizerState(container));
     var computedStyle = window.getComputedStyle(overlayRoot);
 
     if (computedStyle.position === "static") {
@@ -262,27 +289,38 @@
     overlay.setAttribute("data-onpri-main-preview-overlay", "true");
     overlay.style.position = "absolute";
     overlay.style.inset = "0";
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.pointerEvents = "none";
-    overlay.style.zIndex = "3";
+    overlay.style.display = "block";
+    overlay.style.pointerEvents = "auto";
+    overlay.style.zIndex = "20";
+
+    overlay.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+
+    overlay.addEventListener("pointerdown", function (event) {
+      if (event.target && event.target.closest && event.target.closest("[data-onpri-main-preview-image='true']")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
 
     var image = document.createElement("img");
     image.src = imageUrl;
     image.alt = imageName;
     image.loading = "lazy";
+    image.setAttribute("data-onpri-main-preview-image", "true");
+    image.style.position = "absolute";
     image.style.maxWidth = "28%";
     image.style.maxHeight = "18%";
     image.style.objectFit = "contain";
-    image.style.transform =
-      "translate(" + state.positionX + "%, " + state.positionY + "%) scale(" + state.scale + ")";
-    image.style.transformOrigin = "center center";
 
     makeMainPreviewImageDraggable(container, image);
-
     overlay.appendChild(image);
     overlayRoot.appendChild(overlay);
+    applyPreviewTransforms(container);
   }
 
   function createPreviewArea() {
@@ -365,9 +403,7 @@
       overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
       overlayLayer.style.position = "absolute";
       overlayLayer.style.inset = "0";
-      overlayLayer.style.display = "flex";
-      overlayLayer.style.alignItems = "center";
-      overlayLayer.style.justifyContent = "center";
+      overlayLayer.style.display = "block";
       overlayLayer.style.zIndex = "2";
       previewCanvas.appendChild(overlayLayer);
     }
@@ -394,18 +430,15 @@
     image.src = imageUrl;
     image.alt = imageName;
     image.loading = "lazy";
-    var state = clampCustomizerState(getCustomizerState(container));
-
     image.setAttribute("data-onpri-preview-overlay-image", "true");
+    image.style.position = "absolute";
     image.style.maxWidth = "42%";
     image.style.maxHeight = "28%";
     image.style.objectFit = "contain";
-    image.style.transform =
-      "translate(" + state.positionX + "%, " + state.positionY + "%) scale(" + state.scale + ")";
-    image.style.transformOrigin = "center center";
 
     overlayLayer.appendChild(image);
     syncMainProductPreviewOverlay(container, setting);
+    applyPreviewTransforms(container);
   }
 
 
