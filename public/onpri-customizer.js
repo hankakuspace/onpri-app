@@ -139,6 +139,79 @@
     );
   }
 
+  function makeMainPreviewImageDraggable(container, image) {
+    var dragging = false;
+    var startX = 0;
+    var startY = 0;
+    var startPositionX = 0;
+    var startPositionY = 0;
+
+    image.style.pointerEvents = "auto";
+    image.style.cursor = "grab";
+    image.style.userSelect = "none";
+    image.draggable = false;
+
+    function updateFromPointer(clientX, clientY) {
+      var state = clampCustomizerState(getCustomizerState(container));
+      var deltaX = clientX - startX;
+      var deltaY = clientY - startY;
+
+      state.positionX = startPositionX + deltaX / 4;
+      state.positionY = startPositionY + deltaY / 4;
+
+      clampCustomizerState(state);
+      updatePreview(container, window.__onpriCustomizerSelection.setting);
+      applySelectionToProductForm(
+        window.__onpriCustomizerSelection.container,
+        window.__onpriCustomizerSelection.config,
+        window.__onpriCustomizerSelection.setting,
+      );
+    }
+
+    image.addEventListener("pointerdown", function (event) {
+      if (!window.__onpriCustomizerSelection) {
+        return;
+      }
+
+      var state = clampCustomizerState(getCustomizerState(container));
+
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      startPositionX = state.positionX;
+      startPositionY = state.positionY;
+
+      image.style.cursor = "grabbing";
+      image.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+
+    image.addEventListener("pointermove", function (event) {
+      if (!dragging) {
+        return;
+      }
+
+      updateFromPointer(event.clientX, event.clientY);
+      event.preventDefault();
+    });
+
+    image.addEventListener("pointerup", function (event) {
+      dragging = false;
+      image.style.cursor = "grab";
+
+      try {
+        image.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // pointer capture が解除済みの場合は何もしない。
+      }
+    });
+
+    image.addEventListener("pointercancel", function () {
+      dragging = false;
+      image.style.cursor = "grab";
+    });
+  }
+
   function syncMainProductPreviewOverlay(container, setting) {
     var mainImage = getMainProductImageElement();
     var overlayRoot = getMainProductOverlayRoot(mainImage);
@@ -187,6 +260,8 @@
     image.style.transform =
       "translate(" + state.positionX + "%, " + state.positionY + "%) scale(" + state.scale + ")";
     image.style.transformOrigin = "center center";
+
+    makeMainPreviewImageDraggable(container, image);
 
     overlay.appendChild(image);
     overlayRoot.appendChild(overlay);
