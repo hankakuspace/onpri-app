@@ -629,23 +629,55 @@
       return handle;
     });
 
-    image.addEventListener("mouseenter", function () {
-      setMainSelectionControlsVisible(true);
-    });
+    var hideSelectionTimer = null;
 
-    selectionFrame.addEventListener("mouseenter", function () {
-      setMainSelectionControlsVisible(true);
-    });
+    function showMainSelectionControls() {
+      if (hideSelectionTimer) {
+        window.clearTimeout(hideSelectionTimer);
+        hideSelectionTimer = null;
+      }
 
-    overlay.addEventListener("mouseleave", function () {
-      setMainSelectionControlsVisible(false);
+      setMainSelectionControlsVisible(true);
+    }
+
+    function hideMainSelectionControlsSoon() {
+      if (hideSelectionTimer) {
+        window.clearTimeout(hideSelectionTimer);
+      }
+
+      hideSelectionTimer = window.setTimeout(function () {
+        var hoveredControl = document.querySelector(
+          "[data-onpri-main-preview-image='true']:hover, " +
+          "[data-onpri-main-selection-frame='true']:hover, " +
+          "[data-onpri-main-resize-handle='true']:hover"
+        );
+
+        if (!hoveredControl) {
+          setMainSelectionControlsVisible(false);
+        }
+      }, 120);
+    }
+
+    image.addEventListener("mouseenter", showMainSelectionControls);
+    image.addEventListener("mouseleave", hideMainSelectionControlsSoon);
+
+    selectionFrame.addEventListener("mouseenter", showMainSelectionControls);
+    selectionFrame.addEventListener("mouseleave", hideMainSelectionControlsSoon);
+
+    resizeHandles.forEach(function (resizeHandle) {
+      resizeHandle.addEventListener("mouseenter", showMainSelectionControls);
+      resizeHandle.addEventListener("mouseleave", hideMainSelectionControlsSoon);
     });
 
     document.addEventListener("click", function (event) {
       if (
         event.target &&
         event.target.closest &&
-        event.target.closest("[data-onpri-main-preview-overlay='true']")
+        (
+          event.target.closest("[data-onpri-main-preview-image='true']") ||
+          event.target.closest("[data-onpri-main-selection-frame='true']") ||
+          event.target.closest("[data-onpri-main-resize-handle='true']")
+        )
       ) {
         return;
       }
@@ -894,8 +926,47 @@
 
   function updateGeneratedPreviewData(container, setting) {
     return generatePreviewDataUrl(container, setting).then(function (previewDataUrl) {
+      var apiBase = container.__onpriApiBase || container.getAttribute("data-api-base") || "";
+
       container.__onpriPreviewDataUrl = previewDataUrl || "";
-      return container.__onpriPreviewDataUrl;
+
+      if (!previewDataUrl || !apiBase) {
+        container.__onpriPreviewImageUrl = "";
+        return container.__onpriPreviewImageUrl;
+      }
+
+      return fetch(apiBase.replace(/\/$/, "") + "/api/customizer/preview", {
+        method: "POST",
+        credentials: "omit",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId:
+            window.__onpriCustomizerSelection &&
+            window.__onpriCustomizerSelection.config &&
+            window.__onpriCustomizerSelection.config.product
+              ? window.__onpriCustomizerSelection.config.product.id
+              : "",
+          settingId: setting && setting.id ? setting.id : "",
+          previewDataUrl: previewDataUrl,
+        }),
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("Failed to save preview image");
+          }
+
+          return response.json();
+        })
+        .then(function (result) {
+          container.__onpriPreviewImageUrl = result.previewImageUrl || "";
+          return container.__onpriPreviewImageUrl;
+        })
+        .catch(function () {
+          container.__onpriPreviewImageUrl = "";
+          return "";
+        });
     });
   }
 
@@ -924,7 +995,7 @@
       setHiddenInput(form, "properties[ONPRI位置X]", formatCustomizerNumber(state.positionX));
       setHiddenInput(form, "properties[ONPRI位置Y]", formatCustomizerNumber(state.positionY));
       setHiddenInput(form, "properties[ONPRI拡大率]", formatCustomizerNumber(state.scale));
-      setHiddenInput(form, "properties[ONPRIプレビュー画像データ]", container.__onpriPreviewDataUrl || "");
+      setHiddenInput(form, "properties[ONPRIプレビュー画像URL]", container.__onpriPreviewImageUrl || "");
     });
 
     window.__onpriCustomizerSelection = {
@@ -1163,6 +1234,7 @@
     containers.forEach(function (container) {
       var productId = container.getAttribute("data-product-id");
       var apiBase = container.getAttribute("data-api-base") || defaultApiBase;
+      container.__onpriApiBase = apiBase.replace(/\/$/, "");
 
       if (!productId) {
         renderError(container);

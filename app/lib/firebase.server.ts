@@ -1,6 +1,7 @@
 // app/lib/firebase.server.ts
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 type FirebaseServiceAccount = {
   projectId: string;
@@ -24,7 +25,7 @@ function getFirebaseServiceAccount(): FirebaseServiceAccount | null {
   };
 }
 
-export function getFirebaseDb() {
+function ensureFirebaseApp() {
   const serviceAccount = getFirebaseServiceAccount();
 
   if (!serviceAccount) {
@@ -37,5 +38,25 @@ export function getFirebaseDb() {
     });
   }
 
+  return getApps()[0];
+}
+
+export function getFirebaseDb() {
+  const app = ensureFirebaseApp();
+
+  if (!app) {
+    return null;
+  }
+
   return getFirestore();
+}
+
+export function getFirebaseStorageBucket() {
+  const app = ensureFirebaseApp();
+
+  if (!app) {
+    return null;
+  }
+
+  return getStorage().bucket("onpri-app.firebasestorage.app");
 }
