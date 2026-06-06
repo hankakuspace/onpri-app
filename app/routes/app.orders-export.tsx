@@ -73,6 +73,8 @@ type CsvRow = {
   onpriBrandId: string;
   onpriInternalBrandId: string;
   onpriSettingId: string;
+  onpriCustomizationType: string;
+  onpriNameText: string;
   onpriImageId: string;
   onpriImageName: string;
   onpriImageUrl: string;
@@ -98,6 +100,8 @@ const CSV_HEADERS: Array<keyof CsvRow> = [
   "onpriBrandId",
   "onpriInternalBrandId",
   "onpriSettingId",
+  "onpriCustomizationType",
+  "onpriNameText",
   "onpriImageId",
   "onpriImageName",
   "onpriImageUrl",
@@ -123,6 +127,8 @@ const CSV_HEADER_LABELS: Record<keyof CsvRow, string> = {
   onpriBrandId: "ONPRIブランドID",
   onpriInternalBrandId: "_onpri_brand_id",
   onpriSettingId: "ONPRI設定ID",
+  onpriCustomizationType: "ONPRIカスタマイズ種別",
+  onpriNameText: "ONPRI名入れテキスト",
   onpriImageId: "ONPRI画像ID",
   onpriImageName: "ONPRI画像名",
   onpriImageUrl: "ONPRI画像URL",
@@ -203,6 +209,14 @@ function createRows(orders: OrderNode[]): CsvRow[] {
         onpriSettingId: getCustomAttribute(
           lineItem.customAttributes,
           "ONPRI設定ID",
+        ),
+        onpriCustomizationType: getCustomAttribute(
+          lineItem.customAttributes,
+          "ONPRIカスタマイズ種別",
+        ),
+        onpriNameText: getCustomAttribute(
+          lineItem.customAttributes,
+          "ONPRI名入れテキスト",
         ),
         onpriImageId: getCustomAttribute(
           lineItem.customAttributes,

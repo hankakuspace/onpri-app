@@ -987,6 +987,7 @@
       setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
       setHiddenInput(form, "properties[ONPRIブランドID]", config.product.brandId);
       setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
+      setHiddenInput(form, "properties[ONPRIカスタマイズ種別]", "イラスト印刷");
       var state = clampCustomizerState(getCustomizerState(container));
 
       setHiddenInput(form, "properties[ONPRI画像ID]", setting.imageId);
@@ -996,6 +997,31 @@
       setHiddenInput(form, "properties[ONPRI位置Y]", formatCustomizerNumber(state.positionY));
       setHiddenInput(form, "properties[ONPRI拡大率]", formatCustomizerNumber(state.scale));
       setHiddenInput(form, "properties[ONPRIプレビュー画像URL]", container.__onpriPreviewImageUrl || "");
+    });
+
+    window.__onpriCustomizerSelection = {
+      container: container,
+      config: config,
+      setting: setting,
+    };
+
+    return true;
+  }\n\n  function applyTextSelectionToProductForm(container, config, setting, textValue) {
+    var forms = findProductForms(container);
+
+    if (!forms.length) {
+      return false;
+    }
+
+    forms.forEach(function (form) {
+      clearCustomizerProperties(form);
+
+      setHiddenInput(form, "properties[ONPRI商品設定ID]", config.product.id);
+      setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
+      setHiddenInput(form, "properties[ONPRIブランドID]", config.product.brandId);
+      setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
+      setHiddenInput(form, "properties[ONPRIカスタマイズ種別]", "名入れ");
+      setHiddenInput(form, "properties[ONPRI名入れテキスト]", textValue);
     });
 
     window.__onpriCustomizerSelection = {
@@ -1149,31 +1175,99 @@
     return controls;
   }
 
+  function createTextCustomizerOption(container, config, setting) {
+    var wrapper = document.createElement("div");
+    wrapper.style.border = "1px solid #dddddd";
+    wrapper.style.padding = "12px";
+    wrapper.style.margin = "0 0 16px";
+    wrapper.style.background = "#ffffff";
+
+    var label = document.createElement("label");
+    label.textContent = setting.label || "名入れ";
+    label.style.display = "block";
+    label.style.fontWeight = "600";
+    label.style.margin = "0 0 8px";
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "名入れ文字を入力";
+    input.maxLength = 30;
+    input.style.width = "100%";
+    input.style.boxSizing = "border-box";
+    input.style.padding = "10px";
+    input.style.border = "1px solid #dddddd";
+    input.style.borderRadius = "6px";
+
+    var note = document.createElement("p");
+    note.textContent = "入力した文字はカート・注文情報に保存されます。";
+    note.style.margin = "8px 0 0";
+    note.style.fontSize = "13px";
+    note.style.color = "#666666";
+
+    var output = document.createElement("p");
+    output.textContent = "名入れ: 未入力";
+    output.style.margin = "8px 0 0";
+    output.style.fontWeight = "600";
+
+    input.addEventListener("input", function () {
+      var textValue = input.value.trim();
+      var applied = applyTextSelectionToProductForm(container, config, setting, textValue);
+
+      output.textContent = textValue
+        ? "名入れ: " + textValue
+        : "名入れ: 未入力";
+
+      if (!applied) {
+        output.textContent += "（商品フォーム未検出）";
+      }
+    });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    wrapper.appendChild(note);
+    wrapper.appendChild(output);
+
+    return wrapper;
+  }
+
   function createCustomizerOptions(container, config, settings) {
     var wrapper = document.createElement("div");
     var registeredImageSettings = settings.filter(function (setting) {
       return setting.inputType === "registered_image";
     });
-
-    if (!registeredImageSettings.length) {
-      return wrapper;
-    }
-
-    var heading = document.createElement("h4");
-    heading.textContent = "登録済み画像を選択";
-    heading.style.margin = "16px 0 12px";
-    wrapper.appendChild(heading);
-
-    var selectedOutput = document.createElement("p");
-    selectedOutput.textContent = "選択中: 未選択";
-    selectedOutput.style.margin = "12px 0 0";
-    selectedOutput.style.fontWeight = "600";
-
-    registeredImageSettings.forEach(function (setting) {
-      wrapper.appendChild(createCustomizerOption(container, config, setting, selectedOutput));
+    var textSettings = settings.filter(function (setting) {
+      return setting.inputType === "text";
     });
 
-    wrapper.appendChild(selectedOutput);
+    if (textSettings.length) {
+      var textHeading = document.createElement("h4");
+      textHeading.textContent = "名入れ";
+      textHeading.style.margin = "16px 0 12px";
+      wrapper.appendChild(textHeading);
+
+      textSettings.forEach(function (setting) {
+        wrapper.appendChild(createTextCustomizerOption(container, config, setting));
+      });
+    }
+
+    if (registeredImageSettings.length) {
+      var heading = document.createElement("h4");
+      heading.textContent = "登録済み画像を選択";
+      heading.style.margin = "16px 0 12px";
+      wrapper.appendChild(heading);
+
+      var selectedOutput = document.createElement("p");
+      selectedOutput.textContent = "選択中: 未選択";
+      selectedOutput.style.margin = "12px 0 0";
+      selectedOutput.style.fontWeight = "600";
+
+      registeredImageSettings.forEach(function (setting) {
+        wrapper.appendChild(createCustomizerOption(container, config, setting, selectedOutput));
+      });
+
+      wrapper.appendChild(selectedOutput);
+      wrapper.appendChild(createPreviewControls(container));
+    }
 
     return wrapper;
   }
@@ -1206,8 +1300,14 @@
       return;
     }
 
-    wrapper.appendChild(createPreviewArea());
-    wrapper.appendChild(createPreviewControls(container));
+    var hasRegisteredImageSettings = config.settings.some(function (setting) {
+      return setting.inputType === "registered_image";
+    });
+
+    if (hasRegisteredImageSettings) {
+      wrapper.appendChild(createPreviewArea());
+    }
+
     wrapper.appendChild(createCustomizerOptions(container, config, config.settings));
     container.appendChild(wrapper);
   }
