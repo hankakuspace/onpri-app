@@ -223,9 +223,9 @@
       smallPreviewImage.style.left = left;
       smallPreviewImage.style.top = top;
       smallPreviewImage.style.width = width;
+      smallPreviewImage.style.height = "auto";
       smallPreviewImage.style.maxWidth = "none";
       smallPreviewImage.style.maxHeight = "none";
-      smallPreviewImage.style.height = "auto";
       smallPreviewImage.style.transform = "translate(-50%, -50%)";
       smallPreviewImage.style.transformOrigin = "center center";
     }
@@ -235,9 +235,9 @@
       mainPreviewImage.style.left = left;
       mainPreviewImage.style.top = top;
       mainPreviewImage.style.width = width;
+      mainPreviewImage.style.height = "auto";
       mainPreviewImage.style.maxWidth = "none";
       mainPreviewImage.style.maxHeight = "none";
-      mainPreviewImage.style.height = "auto";
       mainPreviewImage.style.transform = "translate(-50%, -50%)";
       mainPreviewImage.style.transformOrigin = "center center";
     }
@@ -250,6 +250,27 @@
       selectionFrame.style.height = mainPreviewImage.offsetHeight + "px";
       selectionFrame.style.transform = "translate(-50%, -50%)";
     }
+
+    document.querySelectorAll("[data-onpri-main-resize-handle='true']").forEach(function (handle) {
+      var corner = handle.getAttribute("data-onpri-resize-corner") || "se";
+      var frameWidth = mainPreviewImage ? mainPreviewImage.offsetWidth : 0;
+      var frameHeight = mainPreviewImage ? mainPreviewImage.offsetHeight : 0;
+      var offsetX = frameWidth / 2;
+      var offsetY = frameHeight / 2;
+
+      handle.style.left = left;
+      handle.style.top = top;
+
+      if (corner === "nw") {
+        handle.style.transform = "translate(calc(-50% - " + offsetX + "px), calc(-50% - " + offsetY + "px))";
+      } else if (corner === "ne") {
+        handle.style.transform = "translate(calc(-50% + " + offsetX + "px), calc(-50% - " + offsetY + "px))";
+      } else if (corner === "sw") {
+        handle.style.transform = "translate(calc(-50% - " + offsetX + "px), calc(-50% + " + offsetY + "px))";
+      } else {
+        handle.style.transform = "translate(calc(-50% + " + offsetX + "px), calc(-50% + " + offsetY + "px))";
+      }
+    });
   }
 
   function makeMainPreviewImageDraggable(container, image, resizeHandles) {
@@ -501,8 +522,10 @@
     image.loading = "lazy";
     image.setAttribute("data-onpri-main-preview-image", "true");
     image.style.position = "absolute";
-    image.style.maxWidth = "32%";
-    image.style.maxHeight = "22%";
+    image.style.width = "32%";
+    image.style.height = "auto";
+    image.style.maxWidth = "none";
+    image.style.maxHeight = "none";
     image.style.objectFit = "contain";
 
     var selectionFrame = document.createElement("div");
@@ -514,10 +537,10 @@
     selectionFrame.style.zIndex = "5";
 
     var corners = [
-      { key: "nw", cursor: "nwse-resize", left: "-6px", top: "-6px" },
-      { key: "ne", cursor: "nesw-resize", right: "-6px", top: "-6px" },
-      { key: "sw", cursor: "nesw-resize", left: "-6px", bottom: "-6px" },
-      { key: "se", cursor: "nwse-resize", right: "-6px", bottom: "-6px" },
+      { key: "nw", cursor: "nwse-resize" },
+      { key: "ne", cursor: "nesw-resize" },
+      { key: "sw", cursor: "nesw-resize" },
+      { key: "se", cursor: "nwse-resize" },
     ];
 
     var resizeHandles = corners.map(function (corner) {
@@ -536,12 +559,7 @@
       handle.style.zIndex = "6";
       handle.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.25)";
 
-      if (corner.left) handle.style.left = corner.left;
-      if (corner.right) handle.style.right = corner.right;
-      if (corner.top) handle.style.top = corner.top;
-      if (corner.bottom) handle.style.bottom = corner.bottom;
-
-      selectionFrame.appendChild(handle);
+      overlay.appendChild(handle);
 
       return handle;
     });
@@ -675,8 +693,10 @@
     image.loading = "lazy";
     image.setAttribute("data-onpri-preview-overlay-image", "true");
     image.style.position = "absolute";
-    image.style.maxWidth = "32%";
-    image.style.maxHeight = "22%";
+    image.style.width = "32%";
+    image.style.height = "auto";
+    image.style.maxWidth = "none";
+    image.style.maxHeight = "none";
     image.style.objectFit = "contain";
 
     overlayLayer.appendChild(image);
