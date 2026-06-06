@@ -94,6 +94,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function CustomizerPage() {
   const { images, products, settings, source } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const imageById = new Map(images.map((image) => [image.id, image]));
 
   return (
     <s-page heading="ONPRI Customizer">
@@ -279,38 +281,57 @@ export default function CustomizerPage() {
       </s-section>
 
       <s-section heading="商品別カスタマイズ設定を追加">
+        <s-paragraph>
+          同じ対象商品IDに対して、複数の画像・入力項目を追加できます。
+        </s-paragraph>
+
         <Form method="post">
           <input type="hidden" name="intent" value="create-customizer-product-setting" />
 
           <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
             <label>
               <div>ID</div>
-              <input name="id" defaultValue="setting-02" placeholder="例: setting-02" required />
+              <input name="id" defaultValue="setting-product-01-logo-01" placeholder="例: setting-product-01-logo-01" required />
             </label>
 
             <label>
               <div>設定ID</div>
-              <input name="productSettingId" defaultValue="product-02" placeholder="例: product-02" required />
+              <input name="productSettingId" defaultValue="product-01" placeholder="例: product-01" required />
             </label>
 
             <label>
-              <div>対象商品ID</div>
-              <input name="productId" defaultValue="product-02" placeholder="例: product-02" required />
+              <div>対象商品</div>
+              <select name="productId" required>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.productTitle} / {product.brandId} / {product.id}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
-              <div>画像ID</div>
-              <input name="imageId" defaultValue="logo-02" placeholder="例: logo-02" required />
+              <div>画像・入力項目</div>
+              <select name="imageId" required>
+                {images.map((image) => (
+                  <option key={image.id} value={image.id}>
+                    {image.name} / {image.id}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
               <div>表示名</div>
-              <input name="label" defaultValue="ONPRIサンプルロゴ" placeholder="例: ONPRIサンプルロゴ" required />
+              <input name="label" defaultValue="ONPRIロゴ" placeholder="例: ONPRIロゴ" required />
             </label>
 
             <label>
               <div>入力タイプ</div>
-              <input name="inputType" defaultValue="registered_image" placeholder="例: registered_image" required />
+              <select name="inputType" defaultValue="registered_image" required>
+                <option value="registered_image">registered_image</option>
+                <option value="text">text</option>
+              </select>
             </label>
 
             <label>
@@ -331,24 +352,54 @@ export default function CustomizerPage() {
                 <th>ID</th>
                 <th>設定ID</th>
                 <th>対象商品ID</th>
-                <th>画像ID</th>
+                <th>商品名</th>
+                <th>ブランドID</th>
+                <th>画像・入力項目ID</th>
+                <th>画像・入力項目名</th>
+                <th>サムネイル</th>
                 <th>表示名</th>
                 <th>入力タイプ</th>
                 <th>状態</th>
               </tr>
             </thead>
             <tbody>
-              {settings.map((setting) => (
-                <tr key={setting.id}>
-                  <td>{setting.id}</td>
-                  <td>{setting.productSettingId}</td>
-                  <td>{setting.productId}</td>
-                  <td>{setting.imageId}</td>
-                  <td>{setting.label}</td>
-                  <td>{setting.inputType}</td>
-                  <td>{setting.status}</td>
-                </tr>
-              ))}
+              {settings.map((setting) => {
+                const product = productById.get(setting.productId);
+                const image = imageById.get(setting.imageId);
+
+                return (
+                  <tr key={setting.id}>
+                    <td>{setting.id}</td>
+                    <td>{setting.productSettingId}</td>
+                    <td>{setting.productId}</td>
+                    <td>{product?.productTitle || "未登録"}</td>
+                    <td>{product?.brandId || "未登録"}</td>
+                    <td>{setting.imageId}</td>
+                    <td>{image?.name || "未登録"}</td>
+                    <td>
+                      {image?.imageUrl ? (
+                        <img
+                          src={image.imageUrl}
+                          alt={`${image.name} サムネイル`}
+                          style={{
+                            width: "64px",
+                            height: "64px",
+                            objectFit: "contain",
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            background: "#fff",
+                          }}
+                        />
+                      ) : (
+                        "未設定"
+                      )}
+                    </td>
+                    <td>{setting.label}</td>
+                    <td>{setting.inputType}</td>
+                    <td>{setting.status}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
