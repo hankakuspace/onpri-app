@@ -60,6 +60,81 @@
     });
   }
 
+  function createPreviewArea() {
+    var previewWrapper = document.createElement("div");
+    previewWrapper.setAttribute("data-onpri-preview-wrapper", "true");
+    previewWrapper.style.margin = "16px 0";
+    previewWrapper.style.padding = "16px";
+    previewWrapper.style.border = "1px solid #dddddd";
+    previewWrapper.style.background = "#fafafa";
+
+    var previewTitle = document.createElement("h4");
+    previewTitle.textContent = "プレビュー";
+    previewTitle.style.margin = "0 0 12px";
+
+    var previewCanvas = document.createElement("div");
+    previewCanvas.setAttribute("data-onpri-preview-canvas", "true");
+    previewCanvas.style.position = "relative";
+    previewCanvas.style.width = "100%";
+    previewCanvas.style.aspectRatio = "4 / 3";
+    previewCanvas.style.border = "1px solid #eeeeee";
+    previewCanvas.style.background = "#ffffff";
+    previewCanvas.style.overflow = "hidden";
+    previewCanvas.style.display = "flex";
+    previewCanvas.style.alignItems = "center";
+    previewCanvas.style.justifyContent = "center";
+
+    var placeholder = document.createElement("p");
+    placeholder.setAttribute("data-onpri-preview-placeholder", "true");
+    placeholder.textContent = "画像を選択するとプレビューが表示されます。";
+    placeholder.style.margin = "0";
+    placeholder.style.color = "#666666";
+    placeholder.style.fontSize = "14px";
+    placeholder.style.textAlign = "center";
+
+    previewCanvas.appendChild(placeholder);
+    previewWrapper.appendChild(previewTitle);
+    previewWrapper.appendChild(previewCanvas);
+
+    return previewWrapper;
+  }
+
+  function updatePreview(container, setting) {
+    var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
+
+    if (!previewCanvas) {
+      return;
+    }
+
+    previewCanvas.innerHTML = "";
+
+    var imageUrl = setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
+    var imageName = setting.image && setting.image.name ? setting.image.name : "選択画像";
+
+    if (!imageUrl) {
+      var placeholder = document.createElement("p");
+      placeholder.setAttribute("data-onpri-preview-placeholder", "true");
+      placeholder.textContent = "画像URLが未設定です。";
+      placeholder.style.margin = "0";
+      placeholder.style.color = "#666666";
+      placeholder.style.fontSize = "14px";
+      placeholder.style.textAlign = "center";
+      previewCanvas.appendChild(placeholder);
+      return;
+    }
+
+    var image = document.createElement("img");
+    image.src = imageUrl;
+    image.alt = imageName;
+    image.loading = "lazy";
+    image.style.maxWidth = "55%";
+    image.style.maxHeight = "45%";
+    image.style.objectFit = "contain";
+
+    previewCanvas.appendChild(image);
+  }
+
+
   function applySelectionToProductForm(container, config, setting) {
     var forms = findProductForms(container);
 
@@ -149,6 +224,8 @@
 
       selectedOutput.setAttribute("data-selected-image-id", setting.imageId);
       selectedOutput.setAttribute("data-selected-setting-id", setting.id);
+
+      updatePreview(container, setting);
     });
 
     textContent.appendChild(radio);
@@ -210,6 +287,7 @@
       return;
     }
 
+    wrapper.appendChild(createPreviewArea());
     wrapper.appendChild(createCustomizerOptions(container, config, config.settings));
     container.appendChild(wrapper);
   }
