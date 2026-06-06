@@ -858,9 +858,6 @@
 
   function getDefaultTextCustomizerOptions() {
     return {
-      area: "前面中央",
-      position: "中央",
-      fontSize: "中",
       fontColor: "白",
       fontFamily: "ゴシック",
     };
@@ -871,75 +868,29 @@
     var normalized = options || {};
 
     return {
-      area: normalized.area || defaults.area,
-      position: normalized.position || defaults.position,
-      fontSize: normalized.fontSize || defaults.fontSize,
       fontColor: normalized.fontColor || defaults.fontColor,
       fontFamily: normalized.fontFamily || defaults.fontFamily,
     };
   }
 
-  function getTextPreviewAreaConfig(area) {
-    if (area === "左胸") {
-      return {
-        left: "33%",
-        top: "28%",
-        width: "22%",
-        height: "14%",
+  function getTextCustomizerState(container) {
+    if (!container.__onpriTextCustomizerState) {
+      container.__onpriTextCustomizerState = {
+        positionX: 0,
+        positionY: 0,
+        scale: 1,
       };
     }
 
-    if (area === "背面中央") {
-      return {
-        left: "31%",
-        top: "24%",
-        width: "38%",
-        height: "48%",
-      };
-    }
-
-    return {
-      left: "31%",
-      top: "24%",
-      width: "38%",
-      height: "48%",
-    };
+    return container.__onpriTextCustomizerState;
   }
 
-  function getTextPreviewContentLayout(position) {
-    if (position === "上") {
-      return {
-        justifyContent: "flex-start",
-        paddingTop: "10%",
-        paddingBottom: "6%",
-      };
-    }
+  function clampTextCustomizerState(state) {
+    state.positionX = Math.max(-45, Math.min(45, state.positionX));
+    state.positionY = Math.max(-45, Math.min(45, state.positionY));
+    state.scale = Math.max(0.4, Math.min(2.5, state.scale));
 
-    if (position === "下") {
-      return {
-        justifyContent: "flex-end",
-        paddingTop: "6%",
-        paddingBottom: "10%",
-      };
-    }
-
-    return {
-      justifyContent: "center",
-      paddingTop: "8%",
-      paddingBottom: "8%",
-    };
-  }
-
-  function getTextPreviewFontSize(fontSize) {
-    if (fontSize === "小") {
-      return "clamp(18px, 2.2vw, 32px)";
-    }
-
-    if (fontSize === "大") {
-      return "clamp(28px, 3.8vw, 56px)";
-    }
-
-    return "clamp(22px, 3vw, 42px)";
+    return state;
   }
 
   function getTextPreviewColor(fontColor) {
@@ -978,43 +929,265 @@
     return "0 2px 6px rgba(255, 255, 255, 0.35)";
   }
 
+  function setTextSelectionControlsVisible(visible) {
+    var opacity = visible ? "1" : "0";
+    var pointerEvents = visible ? "auto" : "none";
 
-  function disableMainProductImageZoomForTextPreview(overlayRoot) {
-    if (!overlayRoot || overlayRoot.__onpriTextPreviewZoomDisabled) {
-      return;
+    var selectionFrame = document.querySelector("[data-onpri-main-text-selection-frame='true']");
+    if (selectionFrame) {
+      selectionFrame.style.opacity = opacity;
     }
 
-    overlayRoot.__onpriTextPreviewZoomDisabled = true;
-
-    overlayRoot.addEventListener("click", function (event) {
-      if (!overlayRoot.querySelector("[data-onpri-main-text-preview-overlay='true']")) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.stopImmediatePropagation) {
-        event.stopImmediatePropagation();
-      }
-    }, true);
-
-    overlayRoot.addEventListener("pointerup", function (event) {
-      if (!overlayRoot.querySelector("[data-onpri-main-text-preview-overlay='true']")) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.stopImmediatePropagation) {
-        event.stopImmediatePropagation();
-      }
-    }, true);
+    document.querySelectorAll("[data-onpri-main-text-resize-handle='true']").forEach(function (handle) {
+      handle.style.opacity = opacity;
+      handle.style.pointerEvents = pointerEvents;
+    });
   }
 
+  function applyTextPreviewTransforms(container) {
+    var state = clampTextCustomizerState(getTextCustomizerState(container));
+    var left = "calc(50% + " + state.positionX + "%)";
+    var top = "calc(50% + " + state.positionY + "%)";
+    var baseWidthPercent = 38;
+    var width = (baseWidthPercent * state.scale) + "%";
 
-  function syncMainProductTextPreviewOverlay(textValue, options) {
+    var textBox = document.querySelector("[data-onpri-main-preview-text-box='true']");
+    var selectionFrame = document.querySelector("[data-onpri-main-text-selection-frame='true']");
+
+    if (textBox) {
+      textBox.style.left = left;
+      textBox.style.top = top;
+      textBox.style.width = width;
+      textBox.style.transform = "translate(-50%, -50%)";
+      textBox.style.transformOrigin = "center center";
+    }
+
+    if (selectionFrame && textBox) {
+      selectionFrame.style.left = left;
+      selectionFrame.style.top = top;
+      selectionFrame.style.width = textBox.offsetWidth + "px";
+      selectionFrame.style.height = textBox.offsetHeight + "px";
+      selectionFrame.style.transform = "translate(-50%, -50%)";
+    }
+
+    document.querySelectorAll("[data-onpri-main-text-resize-handle='true']").forEach(function (handle) {
+      var corner = handle.getAttribute("data-onpri-resize-corner") || "se";
+      var frameWidth = textBox ? textBox.offsetWidth : 0;
+      var frameHeight = textBox ? textBox.offsetHeight : 0;
+      var offsetX = frameWidth / 2;
+      var offsetY = frameHeight / 2;
+
+      handle.style.left = left;
+      handle.style.top = top;
+
+      if (corner === "nw") {
+        handle.style.transform = "translate(calc(-50% - " + offsetX + "px), calc(-50% - " + offsetY + "px))";
+      } else if (corner === "ne") {
+        handle.style.transform = "translate(calc(-50% + " + offsetX + "px), calc(-50% - " + offsetY + "px))";
+      } else if (corner === "sw") {
+        handle.style.transform = "translate(calc(-50% - " + offsetX + "px), calc(-50% + " + offsetY + "px))";
+      } else {
+        handle.style.transform = "translate(calc(-50% + " + offsetX + "px), calc(-50% + " + offsetY + "px))";
+      }
+    });
+  }
+
+  function makeMainPreviewTextDraggable(container, textBox, resizeHandles, config, setting, getTextValue, getOptions) {
+    var dragging = false;
+    var resizing = false;
+    var resizeCorner = "se";
+    var startX = 0;
+    var startY = 0;
+    var startPositionX = 0;
+    var startPositionY = 0;
+    var startScale = 1;
+
+    textBox.style.pointerEvents = "auto";
+    textBox.style.cursor = "move";
+    textBox.style.userSelect = "none";
+    textBox.style.touchAction = "none";
+    textBox.style.position = "absolute";
+    textBox.style.zIndex = "4";
+
+    textBox.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+
+    function applyTextStateUpdate() {
+      var textValue = getTextValue();
+      var options = getOptions();
+
+      clampTextCustomizerState(getTextCustomizerState(container));
+      applyTextPreviewTransforms(container);
+      applyTextSelectionToProductForm(container, config, setting, textValue, options);
+    }
+
+    function updatePositionFromPointer(clientX, clientY) {
+      var state = clampTextCustomizerState(getTextCustomizerState(container));
+      var deltaX = clientX - startX;
+      var deltaY = clientY - startY;
+      var root = textBox.closest("[data-onpri-main-text-preview-overlay='true']") || textBox.parentElement;
+      var rect = root ? root.getBoundingClientRect() : null;
+
+      if (!rect || rect.width === 0 || rect.height === 0) {
+        return;
+      }
+
+      state.positionX = startPositionX + (deltaX / rect.width) * 100;
+      state.positionY = startPositionY + (deltaY / rect.height) * 100;
+
+      applyTextStateUpdate();
+    }
+
+    function updateScaleFromPointer(clientX, clientY) {
+      var state = clampTextCustomizerState(getTextCustomizerState(container));
+      var deltaX = clientX - startX;
+      var deltaY = clientY - startY;
+      var delta = 0;
+
+      if (resizeCorner === "se") {
+        delta = deltaX + deltaY;
+      } else if (resizeCorner === "sw") {
+        delta = -deltaX + deltaY;
+      } else if (resizeCorner === "ne") {
+        delta = deltaX - deltaY;
+      } else {
+        delta = -deltaX - deltaY;
+      }
+
+      state.scale = startScale + delta / 260;
+
+      applyTextStateUpdate();
+    }
+
+    textBox.addEventListener("pointerdown", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      var state = clampTextCustomizerState(getTextCustomizerState(container));
+
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      startPositionX = state.positionX;
+      startPositionY = state.positionY;
+
+      textBox.style.cursor = "grabbing";
+      textBox.setPointerCapture(event.pointerId);
+    });
+
+    textBox.addEventListener("pointermove", function (event) {
+      if (!dragging) {
+        return;
+      }
+
+      if (event.buttons === 0) {
+        dragging = false;
+        textBox.style.cursor = "move";
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      updatePositionFromPointer(event.clientX, event.clientY);
+    });
+
+    textBox.addEventListener("pointerup", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      dragging = false;
+      textBox.style.cursor = "move";
+
+      try {
+        textBox.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // pointer capture が解除済みの場合は何もしない。
+      }
+    });
+
+    textBox.addEventListener("pointercancel", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      dragging = false;
+      textBox.style.cursor = "move";
+    });
+
+    resizeHandles.forEach(function (resizeHandle) {
+      resizeHandle.style.pointerEvents = "auto";
+      resizeHandle.style.cursor = resizeHandle.getAttribute("data-onpri-resize-cursor") || "nwse-resize";
+      resizeHandle.style.touchAction = "none";
+
+      resizeHandle.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+
+      resizeHandle.addEventListener("pointerdown", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var state = clampTextCustomizerState(getTextCustomizerState(container));
+
+        resizing = true;
+        resizeCorner = resizeHandle.getAttribute("data-onpri-resize-corner") || "se";
+        startX = event.clientX;
+        startY = event.clientY;
+        startScale = state.scale;
+
+        resizeHandle.setPointerCapture(event.pointerId);
+      });
+
+      resizeHandle.addEventListener("pointermove", function (event) {
+        if (!resizing) {
+          return;
+        }
+
+        if (event.buttons === 0) {
+          resizing = false;
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        updateScaleFromPointer(event.clientX, event.clientY);
+      });
+
+      resizeHandle.addEventListener("pointerup", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        resizing = false;
+
+        try {
+          resizeHandle.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // pointer capture が解除済みの場合は何もしない。
+        }
+      });
+
+      resizeHandle.addEventListener("pointercancel", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        resizing = false;
+      });
+
+      resizeHandle.addEventListener("lostpointercapture", function () {
+        resizing = false;
+      });
+    });
+
+    window.addEventListener("pointerup", function () {
+      dragging = false;
+      resizing = false;
+      textBox.style.cursor = "move";
+    });
+  }
+
+  function syncMainProductTextPreviewOverlay(container, textValue, options, config, setting, getTextValue, getOptions) {
     var mainImage = getMainProductImageElement();
     var overlayRoot = getMainProductOverlayRoot(mainImage);
 
@@ -1028,11 +1201,13 @@
       existingOverlay.remove();
     }
 
+    if (!textValue) {
+      return;
+    }
+
     disableMainProductImageZoomForTextPreview(overlayRoot);
 
     var normalizedOptions = normalizeTextCustomizerOptions(options);
-    var areaConfig = getTextPreviewAreaConfig(normalizedOptions.area);
-    var layout = getTextPreviewContentLayout(normalizedOptions.position);
     var computedStyle = window.getComputedStyle(overlayRoot);
 
     if (computedStyle.position === "static") {
@@ -1043,67 +1218,101 @@
     overlay.setAttribute("data-onpri-main-text-preview-overlay", "true");
     overlay.style.position = "absolute";
     overlay.style.display = "block";
-    overlay.style.pointerEvents = "none";
+    overlay.style.pointerEvents = "auto";
     overlay.style.zIndex = "21";
 
     positionOverlayOnImageArea(overlay, mainImage, overlayRoot);
 
-    var areaFrame = document.createElement("div");
-    areaFrame.setAttribute("data-onpri-main-text-preview-area", "true");
-    areaFrame.style.position = "absolute";
-    areaFrame.style.left = areaConfig.left;
-    areaFrame.style.top = areaConfig.top;
-    areaFrame.style.width = areaConfig.width;
-    areaFrame.style.height = areaConfig.height;
-    areaFrame.style.boxSizing = "border-box";
-    areaFrame.style.border = "1.5px solid rgba(76, 213, 255, 0.65)";
-    areaFrame.style.background = "rgba(255, 255, 255, 0.02)";
+    overlay.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
 
-    var contentBox = document.createElement("div");
-    contentBox.setAttribute("data-onpri-main-text-preview-content-box", "true");
-    contentBox.style.position = "absolute";
-    contentBox.style.inset = "0";
-    contentBox.style.display = "flex";
-    contentBox.style.flexDirection = "column";
-    contentBox.style.justifyContent = layout.justifyContent;
-    contentBox.style.alignItems = "center";
-    contentBox.style.paddingLeft = "8%";
-    contentBox.style.paddingRight = "8%";
-    contentBox.style.paddingTop = layout.paddingTop;
-    contentBox.style.paddingBottom = layout.paddingBottom;
-    contentBox.style.boxSizing = "border-box";
+    var textBox = document.createElement("div");
+    textBox.setAttribute("data-onpri-main-preview-text-box", "true");
+    textBox.textContent = textValue;
+    textBox.style.position = "absolute";
+    textBox.style.boxSizing = "border-box";
+    textBox.style.padding = "6px 10px";
+    textBox.style.textAlign = "center";
+    textBox.style.fontSize = "clamp(22px, 3vw, 42px)";
+    textBox.style.fontFamily = getTextPreviewFontFamily(normalizedOptions.fontFamily);
+    textBox.style.fontWeight = "700";
+    textBox.style.lineHeight = "1.15";
+    textBox.style.letterSpacing = "0.02em";
+    textBox.style.color = getTextPreviewColor(normalizedOptions.fontColor);
+    textBox.style.textShadow = getTextPreviewShadow(normalizedOptions.fontColor);
+    textBox.style.whiteSpace = "normal";
+    textBox.style.wordBreak = "break-word";
+    textBox.style.overflowWrap = "anywhere";
+    textBox.style.border = "1.5px solid rgba(76, 213, 255, 0.9)";
+    textBox.style.background = "rgba(255, 255, 255, 0.03)";
 
-    if (textValue) {
-      var textPreview = document.createElement("div");
-      textPreview.setAttribute("data-onpri-main-preview-text", "true");
-      textPreview.textContent = textValue;
-      textPreview.style.display = "block";
-      textPreview.style.width = "100%";
-      textPreview.style.maxWidth = "100%";
-      textPreview.style.textAlign = "center";
-      textPreview.style.fontSize = getTextPreviewFontSize(normalizedOptions.fontSize);
-      textPreview.style.fontFamily = getTextPreviewFontFamily(normalizedOptions.fontFamily);
-      textPreview.style.fontWeight = "700";
-      textPreview.style.lineHeight = "1.15";
-      textPreview.style.letterSpacing = "0.02em";
-      textPreview.style.color = getTextPreviewColor(normalizedOptions.fontColor);
-      textPreview.style.textShadow = getTextPreviewShadow(normalizedOptions.fontColor);
-      textPreview.style.whiteSpace = "normal";
-      textPreview.style.wordBreak = "break-word";
-      textPreview.style.overflowWrap = "anywhere";
-      textPreview.style.pointerEvents = "none";
+    var selectionFrame = document.createElement("div");
+    selectionFrame.setAttribute("data-onpri-main-text-selection-frame", "true");
+    selectionFrame.style.position = "absolute";
+    selectionFrame.style.border = "2px solid #00a3ff";
+    selectionFrame.style.boxSizing = "border-box";
+    selectionFrame.style.pointerEvents = "none";
+    selectionFrame.style.zIndex = "5";
+    selectionFrame.style.opacity = "1";
+    selectionFrame.style.transition = "opacity 120ms ease";
 
-      contentBox.appendChild(textPreview);
-    }
+    var corners = [
+      { key: "nw", cursor: "nwse-resize" },
+      { key: "ne", cursor: "nesw-resize" },
+      { key: "sw", cursor: "nesw-resize" },
+      { key: "se", cursor: "nwse-resize" },
+    ];
 
-    areaFrame.appendChild(contentBox);
-    overlay.appendChild(areaFrame);
+    var resizeHandles = corners.map(function (corner) {
+      var handle = document.createElement("span");
+      handle.setAttribute("data-onpri-main-text-resize-handle", "true");
+      handle.setAttribute("data-onpri-resize-corner", corner.key);
+      handle.setAttribute("data-onpri-resize-cursor", corner.cursor);
+      handle.setAttribute("aria-label", "名入れサイズを変更");
+      handle.setAttribute("role", "button");
+      handle.style.position = "absolute";
+      handle.style.display = "block";
+      handle.style.width = "12px";
+      handle.style.height = "12px";
+      handle.style.minWidth = "12px";
+      handle.style.minHeight = "12px";
+      handle.style.maxWidth = "12px";
+      handle.style.maxHeight = "12px";
+      handle.style.border = "1px solid #0077cc";
+      handle.style.background = "#ffffff";
+      handle.style.padding = "0";
+      handle.style.margin = "0";
+      handle.style.boxSizing = "border-box";
+      handle.style.borderRadius = "0";
+      handle.style.lineHeight = "0";
+      handle.style.fontSize = "0";
+      handle.style.zIndex = "6";
+      handle.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.25)";
+      handle.style.opacity = "1";
+      handle.style.pointerEvents = "auto";
+      handle.style.transition = "opacity 120ms ease";
+      handle.style.appearance = "none";
+      handle.style.webkitAppearance = "none";
+
+      overlay.appendChild(handle);
+
+      return handle;
+    });
+
+    makeMainPreviewTextDraggable(container, textBox, resizeHandles, config, setting, getTextValue, getOptions);
+
+    overlay.appendChild(textBox);
+    overlay.appendChild(selectionFrame);
     overlayRoot.appendChild(overlay);
+
+    applyTextPreviewTransforms(container);
   }
 
 
-  function updateTextPreview(container, textValue, options) {
-    syncMainProductTextPreviewOverlay(textValue, options);
+  function updateTextPreview(container, textValue, options, config, setting, getTextValue, getOptions) {
+    syncMainProductTextPreviewOverlay(container, textValue, options, config, setting, getTextValue, getOptions);
 
     var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
 
@@ -1358,6 +1567,7 @@
     }
 
     var normalizedOptions = normalizeTextCustomizerOptions(options);
+    var state = clampTextCustomizerState(getTextCustomizerState(container));
 
     forms.forEach(function (form) {
       clearCustomizerProperties(form);
@@ -1369,11 +1579,11 @@
       setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
       setHiddenInput(form, "properties[ONPRIカスタマイズ種別]", "名入れ");
       setHiddenInput(form, "properties[ONPRI名入れテキスト]", textValue);
-      setHiddenInput(form, "properties[ONPRI名入れ入力エリア]", normalizedOptions.area);
-      setHiddenInput(form, "properties[ONPRI名入れ位置]", normalizedOptions.position);
-      setHiddenInput(form, "properties[ONPRI名入れフォントサイズ]", normalizedOptions.fontSize);
       setHiddenInput(form, "properties[ONPRI名入れフォントカラー]", normalizedOptions.fontColor);
       setHiddenInput(form, "properties[ONPRI名入れフォント種類]", normalizedOptions.fontFamily);
+      setHiddenInput(form, "properties[ONPRI名入れ位置X]", formatCustomizerNumber(state.positionX));
+      setHiddenInput(form, "properties[ONPRI名入れ位置Y]", formatCustomizerNumber(state.positionY));
+      setHiddenInput(form, "properties[ONPRI名入れ拡大率]", formatCustomizerNumber(state.scale));
     });
 
     window.__onpriCustomizerSelection = {
@@ -1595,26 +1805,19 @@
     }
 
     var defaults = getDefaultTextCustomizerOptions();
-    var areaSelect = createSelect("入力エリア", ["前面中央", "左胸", "背面中央"], defaults.area);
-    var positionSelect = createSelect("場所", ["上", "中央", "下"], defaults.position);
-    var fontSizeSelect = createSelect("フォントサイズ", ["小", "中", "大"], defaults.fontSize);
     var fontColorSelect = createSelect("フォントカラー", ["白", "黒", "赤", "青"], defaults.fontColor);
     var fontFamilySelect = createSelect("フォント種類", ["ゴシック", "明朝", "丸ゴシック"], defaults.fontFamily);
 
-    controls.appendChild(areaSelect.field);
-    controls.appendChild(positionSelect.field);
-    controls.appendChild(fontSizeSelect.field);
     controls.appendChild(fontColorSelect.field);
     controls.appendChild(fontFamilySelect.field);
 
     var note = document.createElement("p");
-    note.textContent = "入力した文字と選択内容はカート・注文情報に保存されます。";
+    note.textContent = "文字の位置とサイズは、商品画像上のテキストBOXをドラッグ・拡大縮小して調整できます。";
     note.style.margin = "8px 0 0";
     note.style.fontSize = "13px";
     note.style.color = "#666666";
 
     var output = document.createElement("p");
-    updateTextPreview(container, "", defaults);
 
     output.textContent = "名入れ: 未入力";
     output.style.margin = "8px 0 0";
@@ -1622,20 +1825,21 @@
 
     function getCurrentOptions() {
       return {
-        area: areaSelect.select.value,
-        position: positionSelect.select.value,
-        fontSize: fontSizeSelect.select.value,
         fontColor: fontColorSelect.select.value,
         fontFamily: fontFamilySelect.select.value,
       };
     }
 
+    function getCurrentTextValue() {
+      return input.value.trim();
+    }
+
     function refreshTextCustomization() {
-      var textValue = input.value.trim();
+      var textValue = getCurrentTextValue();
       var options = getCurrentOptions();
       var applied = applyTextSelectionToProductForm(container, config, setting, textValue, options);
 
-      updateTextPreview(container, textValue, options);
+      updateTextPreview(container, textValue, options, config, setting, getCurrentTextValue, getCurrentOptions);
 
       output.textContent = textValue
         ? "名入れ: " + textValue
@@ -1647,9 +1851,6 @@
     }
 
     input.addEventListener("input", refreshTextCustomization);
-    areaSelect.select.addEventListener("change", refreshTextCustomization);
-    positionSelect.select.addEventListener("change", refreshTextCustomization);
-    fontSizeSelect.select.addEventListener("change", refreshTextCustomization);
     fontColorSelect.select.addEventListener("change", refreshTextCustomization);
     fontFamilySelect.select.addEventListener("change", refreshTextCustomization);
 
