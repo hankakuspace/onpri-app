@@ -1187,6 +1187,41 @@
     });
   }
 
+  function disableMainProductImageZoomForTextPreview(overlayRoot) {
+    if (!overlayRoot || overlayRoot.__onpriTextPreviewZoomDisabled) {
+      return;
+    }
+
+    overlayRoot.__onpriTextPreviewZoomDisabled = true;
+
+    overlayRoot.addEventListener("click", function (event) {
+      if (!overlayRoot.querySelector("[data-onpri-main-text-preview-overlay='true']")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.stopImmediatePropagation) {
+        event.stopImmediatePropagation();
+      }
+    }, true);
+
+    overlayRoot.addEventListener("pointerup", function (event) {
+      if (!overlayRoot.querySelector("[data-onpri-main-text-preview-overlay='true']")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.stopImmediatePropagation) {
+        event.stopImmediatePropagation();
+      }
+    }, true);
+  }
+
+
   function syncMainProductTextPreviewOverlay(container, textValue, options, config, setting, getTextValue, getOptions) {
     var mainImage = getMainProductImageElement();
     var overlayRoot = getMainProductOverlayRoot(mainImage);
