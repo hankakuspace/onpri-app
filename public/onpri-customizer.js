@@ -914,6 +914,8 @@
 
 
   function updateTextPreview(container, textValue) {
+    syncMainProductTextPreviewOverlay(textValue);
+
     var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
 
     if (!previewCanvas) {
@@ -934,7 +936,6 @@
 
     overlayLayer.innerHTML = "";
     syncSmallPreviewOverlayBounds(container);
-    syncMainProductTextPreviewOverlay(textValue);
 
     if (!textValue) {
       var placeholder = document.createElement("p");
@@ -1360,8 +1361,6 @@
     note.style.color = "#666666";
 
     var output = document.createElement("p");
-    var previewWrapper = createPreviewArea();
-    wrapper.appendChild(previewWrapper);
     updateTextPreview(container, "");
 
     output.textContent = "名入れ: 未入力";
