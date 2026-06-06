@@ -107,6 +107,91 @@
     return "";
   }
 
+  function getMainProductImageElement() {
+    var selectors = [
+      ".product__media img",
+      ".product-media-container img",
+      ".product__media-list img",
+      ".product img",
+    ];
+
+    for (var index = 0; index < selectors.length; index += 1) {
+      var image = document.querySelector(selectors[index]);
+
+      if (image && (image.currentSrc || image.src)) {
+        return image;
+      }
+    }
+
+    return null;
+  }
+
+  function getMainProductOverlayRoot(image) {
+    if (!image) {
+      return null;
+    }
+
+    return (
+      image.closest(".product__media") ||
+      image.closest(".product-media-container") ||
+      image.closest(".product__media-item") ||
+      image.parentElement
+    );
+  }
+
+  function syncMainProductPreviewOverlay(container, setting) {
+    var mainImage = getMainProductImageElement();
+    var overlayRoot = getMainProductOverlayRoot(mainImage);
+
+    if (!overlayRoot) {
+      return;
+    }
+
+    var existingOverlay = overlayRoot.querySelector("[data-onpri-main-preview-overlay='true']");
+
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    var imageUrl = setting && setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
+
+    if (!imageUrl) {
+      return;
+    }
+
+    var imageName = setting && setting.image && setting.image.name ? setting.image.name : "選択画像";
+    var state = clampCustomizerState(getCustomizerState(container));
+    var computedStyle = window.getComputedStyle(overlayRoot);
+
+    if (computedStyle.position === "static") {
+      overlayRoot.style.position = "relative";
+    }
+
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-onpri-main-preview-overlay", "true");
+    overlay.style.position = "absolute";
+    overlay.style.inset = "0";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.pointerEvents = "none";
+    overlay.style.zIndex = "3";
+
+    var image = document.createElement("img");
+    image.src = imageUrl;
+    image.alt = imageName;
+    image.loading = "lazy";
+    image.style.maxWidth = "28%";
+    image.style.maxHeight = "18%";
+    image.style.objectFit = "contain";
+    image.style.transform =
+      "translate(" + state.positionX + "%, " + state.positionY + "%) scale(" + state.scale + ")";
+    image.style.transformOrigin = "center center";
+
+    overlay.appendChild(image);
+    overlayRoot.appendChild(overlay);
+  }
+
   function createPreviewArea() {
     var previewWrapper = document.createElement("div");
     previewWrapper.setAttribute("data-onpri-preview-wrapper", "true");
@@ -208,6 +293,7 @@
       placeholder.style.fontSize = "14px";
       placeholder.style.textAlign = "center";
       overlayLayer.appendChild(placeholder);
+      syncMainProductPreviewOverlay(container, setting);
       return;
     }
 
@@ -226,6 +312,7 @@
     image.style.transformOrigin = "center center";
 
     overlayLayer.appendChild(image);
+    syncMainProductPreviewOverlay(container, setting);
   }
 
 
