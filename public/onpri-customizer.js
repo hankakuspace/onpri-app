@@ -973,6 +973,54 @@
   }
 
 
+  function constrainMainPreviewTextBoxToPrintArea(textBox, printAreaFrame) {
+    if (!textBox || !printAreaFrame) {
+      return;
+    }
+
+    var boxRect = textBox.getBoundingClientRect();
+    var frameRect = printAreaFrame.getBoundingClientRect();
+
+    if (!boxRect.width || !boxRect.height || !frameRect.width || !frameRect.height) {
+      return;
+    }
+
+    var adjustX = 0;
+    var adjustY = 0;
+
+    if (boxRect.left < frameRect.left) {
+      adjustX += frameRect.left - boxRect.left;
+    }
+
+    if (boxRect.right > frameRect.right) {
+      adjustX += frameRect.right - boxRect.right;
+    }
+
+    if (boxRect.top < frameRect.top) {
+      adjustY += frameRect.top - boxRect.top;
+    }
+
+    if (boxRect.bottom > frameRect.bottom) {
+      adjustY += frameRect.bottom - boxRect.bottom;
+    }
+
+    if (!adjustX && !adjustY) {
+      return;
+    }
+
+    var currentLeft = textBox.style.left || "50%";
+    var currentTop = textBox.style.top || "50%";
+
+    if (adjustX) {
+      textBox.style.left = "calc(" + currentLeft + " + " + adjustX + "px)";
+    }
+
+    if (adjustY) {
+      textBox.style.top = "calc(" + currentTop + " + " + adjustY + "px)";
+    }
+  }
+
+
   function applyTextPreviewTransforms(container) {
     var state = clampTextCustomizerState(getTextCustomizerState(container));
     var left = "calc(50% + " + state.positionX + "%)";
@@ -984,12 +1032,15 @@
     var selectionFrame = document.querySelector("[data-onpri-main-text-selection-frame='true']");
 
     if (textBox) {
+      var printAreaFrame = document.querySelector("[data-onpri-main-text-print-area-frame='true']");
+
       textBox.style.left = left;
       textBox.style.top = top;
       textBox.style.width = width;
       textBox.style.transform = "translate(-50%, -50%)";
       textBox.style.transformOrigin = "center center";
       fitMainPreviewTextBoxFontSize(textBox);
+      constrainMainPreviewTextBoxToPrintArea(textBox, printAreaFrame);
     }
 
     if (selectionFrame && textBox) {
