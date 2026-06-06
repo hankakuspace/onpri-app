@@ -61,10 +61,32 @@
   }
 
   function clearThirdPartyCustomizerProperties(form) {
-    var inputs = form.querySelectorAll('input[name^="properties[_customily"], input[name^="properties[customily"], input[name="properties[_preview_image]"], input[name="properties[_Preview Image]"]');
+    var fields = form.querySelectorAll("input[name^='properties[_customily'], input[name^='properties[customily'], input[name='properties[_preview_image]'], input[name='properties[_Preview Image]'], input[name='properties[_customily-thumb]'], input[name='properties[_customily-preview]'], input[name='properties[_customily-production-url]'], input[name='properties[_customily-id]'], input[name='properties[_customily-eps-name]'], input[name='properties[_customily-personalization-id]'], input[name='properties[_customily-template-id]'], input[name='properties[_customily-cart-image]'], textarea[name^='properties[_customily'], select[name^='properties[_customily']");
 
-    inputs.forEach(function (input) {
-      input.remove();
+    fields.forEach(function (field) {
+      field.remove();
+    });
+  }
+
+  function installOnpriFormSubmitCleanup(container) {
+    var forms = findProductForms(container);
+
+    forms.forEach(function (form) {
+      if (form.__onpriSubmitCleanupInstalled) {
+        return;
+      }
+
+      form.__onpriSubmitCleanupInstalled = true;
+
+      form.addEventListener(
+        "submit",
+        function () {
+          if (form.querySelector("[data-onpri-customizer-property='true']")) {
+            clearThirdPartyCustomizerProperties(form);
+          }
+        },
+        true,
+      );
     });
   }
 
@@ -1306,6 +1328,8 @@
       container.appendChild(wrapper);
       return;
     }
+
+    installOnpriFormSubmitCleanup(container);
 
     wrapper.appendChild(createText("商品: " + config.product.productTitle));
     wrapper.appendChild(createText("ブランドID: " + config.product.brandId));
