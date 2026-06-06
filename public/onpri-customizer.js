@@ -1271,6 +1271,7 @@
     printAreaFrame.style.background = "transparent";
     printAreaFrame.style.pointerEvents = "none";
     printAreaFrame.style.zIndex = "40";
+    printAreaFrame.style.display = "block";
 
     if (!textValue) {
       overlay.appendChild(printAreaFrame);
