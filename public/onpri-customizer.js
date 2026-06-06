@@ -973,66 +973,87 @@
   }
 
 
-  function constrainMainPreviewTextBoxToPrintArea(textBox, printAreaFrame) {
-    if (!textBox || !printAreaFrame) {
+  function constrainTextCustomizerStateToPrintArea(container, textBox, printAreaFrame) {
+    if (!container || !textBox || !printAreaFrame) {
       return;
     }
 
-    var boxRect = textBox.getBoundingClientRect();
+    var state = clampTextCustomizerState(getTextCustomizerState(container));
+    var overlay = textBox.closest("[data-onpri-main-text-preview-overlay='true']");
+
+    if (!overlay) {
+      return;
+    }
+
+    var overlayRect = overlay.getBoundingClientRect();
     var frameRect = printAreaFrame.getBoundingClientRect();
+    var boxRect = textBox.getBoundingClientRect();
 
-    if (!boxRect.width || !boxRect.height || !frameRect.width || !frameRect.height) {
+    if (
+      !overlayRect.width ||
+      !overlayRect.height ||
+      !frameRect.width ||
+      !frameRect.height ||
+      !boxRect.width ||
+      !boxRect.height
+    ) {
       return;
     }
 
-    var adjustX = 0;
-    var adjustY = 0;
+    var baseWidthPercent = 38;
+    var frameWidthPercent = (frameRect.width / overlayRect.width) * 100;
+    var maxScale = Math.max(0.4, frameWidthPercent / baseWidthPercent);
 
-    if (boxRect.left < frameRect.left) {
-      adjustX += frameRect.left - boxRect.left;
+    if (state.scale > maxScale) {
+      state.scale = maxScale;
     }
 
-    if (boxRect.right > frameRect.right) {
-      adjustX += frameRect.right - boxRect.right;
+    var boxWidthPercent = baseWidthPercent * state.scale;
+    var boxHeightPercent = (boxRect.height / overlayRect.height) * 100;
+    var frameLeftPercent = ((frameRect.left - overlayRect.left) / overlayRect.width) * 100;
+    var frameTopPercent = ((frameRect.top - overlayRect.top) / overlayRect.height) * 100;
+    var frameRightPercent = frameLeftPercent + frameWidthPercent;
+    var frameBottomPercent = frameTopPercent + ((frameRect.height / overlayRect.height) * 100);
+
+    var minCenterX = frameLeftPercent + (boxWidthPercent / 2);
+    var maxCenterX = frameRightPercent - (boxWidthPercent / 2);
+    var minCenterY = frameTopPercent + (boxHeightPercent / 2);
+    var maxCenterY = frameBottomPercent - (boxHeightPercent / 2);
+
+    var centerX = 50 + state.positionX;
+    var centerY = 50 + state.positionY;
+
+    if (minCenterX > maxCenterX) {
+      centerX = frameLeftPercent + (frameWidthPercent / 2);
+    } else {
+      centerX = Math.max(minCenterX, Math.min(maxCenterX, centerX));
     }
 
-    if (boxRect.top < frameRect.top) {
-      adjustY += frameRect.top - boxRect.top;
+    if (minCenterY > maxCenterY) {
+      centerY = frameTopPercent + ((frameBottomPercent - frameTopPercent) / 2);
+    } else {
+      centerY = Math.max(minCenterY, Math.min(maxCenterY, centerY));
     }
 
-    if (boxRect.bottom > frameRect.bottom) {
-      adjustY += frameRect.bottom - boxRect.bottom;
-    }
+    state.positionX = centerX - 50;
+    state.positionY = centerY - 50;
 
-    if (!adjustX && !adjustY) {
-      return;
-    }
-
-    var currentLeft = textBox.style.left || "50%";
-    var currentTop = textBox.style.top || "50%";
-
-    if (adjustX) {
-      textBox.style.left = "calc(" + currentLeft + " + " + adjustX + "px)";
-    }
-
-    if (adjustY) {
-      textBox.style.top = "calc(" + currentTop + " + " + adjustY + "px)";
-    }
+    clampTextCustomizerState(state);
   }
 
 
   function applyTextPreviewTransforms(container) {
     var state = clampTextCustomizerState(getTextCustomizerState(container));
-    var left = "calc(50% + " + state.positionX + "%)";
-    var top = "calc(50% + " + state.positionY + "%)";
     var baseWidthPercent = 38;
-    var width = (baseWidthPercent * state.scale) + "%";
 
     var textBox = document.querySelector("[data-onpri-main-preview-text-box='true']");
     var selectionFrame = document.querySelector("[data-onpri-main-text-selection-frame='true']");
+    var printAreaFrame = document.querySelector("[data-onpri-main-text-print-area-frame='true']");
 
     if (textBox) {
-      var printAreaFrame = document.querySelector("[data-onpri-main-text-print-area-frame='true']");
+      var width = (baseWidthPercent * state.scale) + "%";
+      var left = "calc(50% + " + state.positionX + "%)";
+      var top = "calc(50% + " + state.positionY + "%)";
 
       textBox.style.left = left;
       textBox.style.top = top;
@@ -1040,7 +1061,18 @@
       textBox.style.transform = "translate(-50%, -50%)";
       textBox.style.transformOrigin = "center center";
       fitMainPreviewTextBoxFontSize(textBox);
-      constrainMainPreviewTextBoxToPrintArea(textBox, printAreaFrame);
+
+      constrainTextCustomizerStateToPrintArea(container, textBox, printAreaFrame);
+
+      state = clampTextCustomizerState(getTextCustomizerState(container));
+      width = (baseWidthPercent * state.scale) + "%";
+      left = "calc(50% + " + state.positionX + "%)";
+      top = "calc(50% + " + state.positionY + "%)";
+
+      textBox.style.left = left;
+      textBox.style.top = top;
+      textBox.style.width = width;
+      fitMainPreviewTextBoxFontSize(textBox);
     }
 
     if (selectionFrame && textBox) {
