@@ -516,17 +516,19 @@
       event.stopPropagation();
     }, true);
 
-    var image = document.createElement("img");
-    image.src = imageUrl;
-    image.alt = imageName;
-    image.loading = "lazy";
+    var image = document.createElement("div");
     image.setAttribute("data-onpri-main-preview-image", "true");
+    image.setAttribute("aria-label", imageName);
     image.style.position = "absolute";
     image.style.width = "32%";
+    image.style.aspectRatio = "675 / 200";
     image.style.height = "auto";
     image.style.maxWidth = "none";
     image.style.maxHeight = "none";
-    image.style.objectFit = "contain";
+    image.style.backgroundImage = "url('" + imageUrl.replace(/'/g, "\\'") + "')";
+    image.style.backgroundRepeat = "no-repeat";
+    image.style.backgroundPosition = "center";
+    image.style.backgroundSize = "contain";
 
     var selectionFrame = document.createElement("div");
     selectionFrame.setAttribute("data-onpri-main-selection-frame", "true");
