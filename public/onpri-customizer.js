@@ -856,6 +856,63 @@
     applyPreviewTransforms(container);
   }
 
+  function syncMainProductTextPreviewOverlay(textValue) {
+    var mainImage = getMainProductImageElement();
+    var overlayRoot = getMainProductOverlayRoot(mainImage);
+
+    if (!overlayRoot) {
+      return;
+    }
+
+    var existingOverlay = overlayRoot.querySelector("[data-onpri-main-text-preview-overlay='true']");
+
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    if (!textValue) {
+      return;
+    }
+
+    var computedStyle = window.getComputedStyle(overlayRoot);
+
+    if (computedStyle.position === "static") {
+      overlayRoot.style.position = "relative";
+    }
+
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-onpri-main-text-preview-overlay", "true");
+    overlay.style.position = "absolute";
+    overlay.style.display = "block";
+    overlay.style.pointerEvents = "none";
+    overlay.style.zIndex = "21";
+
+    positionOverlayOnImageArea(overlay, mainImage, overlayRoot);
+
+    var textPreview = document.createElement("div");
+    textPreview.setAttribute("data-onpri-main-preview-text", "true");
+    textPreview.textContent = textValue;
+    textPreview.style.position = "absolute";
+    textPreview.style.left = "50%";
+    textPreview.style.top = "52%";
+    textPreview.style.transform = "translate(-50%, -50%)";
+    textPreview.style.maxWidth = "72%";
+    textPreview.style.textAlign = "center";
+    textPreview.style.fontSize = "clamp(28px, 4.5vw, 72px)";
+    textPreview.style.fontWeight = "700";
+    textPreview.style.lineHeight = "1.1";
+    textPreview.style.letterSpacing = "0.02em";
+    textPreview.style.color = "#ffffff";
+    textPreview.style.textShadow = "0 3px 10px rgba(0, 0, 0, 0.55)";
+    textPreview.style.whiteSpace = "nowrap";
+    textPreview.style.wordBreak = "normal";
+    textPreview.style.pointerEvents = "none";
+
+    overlay.appendChild(textPreview);
+    overlayRoot.appendChild(overlay);
+  }
+
+
   function updateTextPreview(container, textValue) {
     var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
 
@@ -877,6 +934,7 @@
 
     overlayLayer.innerHTML = "";
     syncSmallPreviewOverlayBounds(container);
+    syncMainProductTextPreviewOverlay(textValue);
 
     if (!textValue) {
       var placeholder = document.createElement("p");
