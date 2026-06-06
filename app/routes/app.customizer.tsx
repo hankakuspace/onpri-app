@@ -105,6 +105,7 @@ export default function CustomizerPage() {
   const { images, products, settings } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [activeSection, setActiveSection] = useState("create-image");
+  const [selectedImageFileNames, setSelectedImageFileNames] = useState<string[]>([]);
 
   const menuItems = [
     { id: "create-image", label: "登録済み画像を追加" },
@@ -116,6 +117,37 @@ export default function CustomizerPage() {
   ];
   const productById = new Map(products.map((product) => [product.id, product]));
   const imageById = new Map(images.map((image) => [image.id, image]));
+
+  function updateSelectedImageFileNames(files: FileList | null) {
+    setSelectedImageFileNames(files ? Array.from(files).map((file) => file.name) : []);
+  }
+
+  function handleImageFilesDrop(event: React.DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+
+    const droppedFiles = Array.from(event.dataTransfer.files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+
+    if (droppedFiles.length === 0) {
+      return;
+    }
+
+    const dataTransfer = new DataTransfer();
+
+    droppedFiles.forEach((file) => {
+      dataTransfer.items.add(file);
+    });
+
+    const input = event.currentTarget.querySelector<HTMLInputElement>(
+      'input[name="imageFiles"]',
+    );
+
+    if (input) {
+      input.files = dataTransfer.files;
+      updateSelectedImageFileNames(input.files);
+    }
+  }
 
   return (
     <s-page heading="ONPRI Customizer">
@@ -215,12 +247,30 @@ export default function CustomizerPage() {
           <input type="hidden" name="intent" value="create-customizer-image" />
 
           <div style={{ display: "grid", gap: "12px", maxWidth: "640px" }}>
-            <label className="onpri-upload-box">
+            <label
+              className="onpri-upload-box"
+              onDragOver={(event) => {
+                event.preventDefault();
+              }}
+              onDrop={handleImageFilesDrop}
+            >
               <strong>画像ファイルをドラッグ＆ドロップ、または選択</strong>
-              <input name="imageFiles" type="file" accept="image/*" multiple required />
+              <input
+                name="imageFiles"
+                type="file"
+                accept="image/*"
+                multiple
+                required
+                onChange={(event) => updateSelectedImageFileNames(event.currentTarget.files)}
+              />
               <span className="onpri-upload-note">
                 複数画像をまとめて登録できます。名称はファイル名から自動登録されます。
               </span>
+              {selectedImageFileNames.length > 0 ? (
+                <span className="onpri-upload-note">
+                  選択中：{selectedImageFileNames.join("、")}
+                </span>
+              ) : null}
             </label>
 
             <button type="submit">登録済み画像をアップロード</button>
