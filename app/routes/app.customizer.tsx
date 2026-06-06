@@ -739,8 +739,54 @@ export default function CustomizerPage() {
             box-shadow: 0 1px 0 rgba(26, 28, 29, 0.10);
           }
 
+          .onpri-current-images {
+            margin-top: 24px;
+            padding: 14px;
+            border: 1px solid #e3e3e3;
+            border-radius: 12px;
+            background: #fafafa;
+          }
+
+          .onpri-current-images-title {
+            margin: 0 0 10px;
+            font-size: 14px;
+            font-weight: 700;
+          }
+
+          .onpri-current-images-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+
+          .onpri-current-image-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border: 1px solid #d2d4d6;
+            border-radius: 999px;
+            background: #ffffff;
+            font-size: 13px;
+            max-width: 220px;
+          }
+
+          .onpri-current-image-chip img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #fff;
+          }
+
+          .onpri-current-image-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
           .onpri-library-head {
-            margin-top: 28px;
+            margin-top: 22px;
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
@@ -802,10 +848,10 @@ export default function CustomizerPage() {
 
           .onpri-library-row {
             display: grid;
-            grid-template-columns: 42px 72px minmax(0, 1fr) auto;
-            gap: 14px;
+            grid-template-columns: 32px 52px minmax(0, 1fr) auto;
+            gap: 12px;
             align-items: center;
-            padding: 12px 16px;
+            padding: 8px 14px;
             border-bottom: 1px solid #e3e3e3;
           }
 
@@ -818,14 +864,14 @@ export default function CustomizerPage() {
           }
 
           .onpri-library-checkbox {
-            width: 22px;
-            height: 22px;
+            width: 18px;
+            height: 18px;
             accent-color: #008060;
           }
 
           .onpri-library-thumb {
-            width: 56px;
-            height: 56px;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
             border: 1px solid #e3e3e3;
             border-radius: 10px;
@@ -834,7 +880,7 @@ export default function CustomizerPage() {
 
           .onpri-library-name {
             min-width: 0;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: #1f2225;
             overflow: hidden;
@@ -843,8 +889,8 @@ export default function CustomizerPage() {
           }
 
           .onpri-library-meta {
-            margin-top: 4px;
-            font-size: 13px;
+            margin-top: 2px;
+            font-size: 12px;
             color: #5c5f62;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -854,7 +900,7 @@ export default function CustomizerPage() {
           .onpri-status-badge {
             display: inline-flex;
             align-items: center;
-            min-height: 28px;
+            min-height: 24px;
             padding: 2px 10px;
             border-radius: 999px;
             font-size: 13px;
@@ -1139,6 +1185,39 @@ export default function CustomizerPage() {
 
                                   {editingCustomizationType === "registered_image" ? (
                                     <section>
+                                      <div className="onpri-current-images">
+                                        <h4 className="onpri-current-images-title">
+                                          現在の使用可能画像
+                                        </h4>
+
+                                        {editingImageIds.length > 0 ? (
+                                          <div className="onpri-current-images-grid">
+                                            {registeredImages
+                                              .filter((image) =>
+                                                editingImageIds.includes(image.id),
+                                              )
+                                              .map((image) => (
+                                                <span
+                                                  key={`${product.id}-current-${image.id}`}
+                                                  className="onpri-current-image-chip"
+                                                >
+                                                  <img
+                                                    src={image.imageUrl}
+                                                    alt={`${image.name} サムネイル`}
+                                                  />
+                                                  <span className="onpri-current-image-name">
+                                                    {image.name}
+                                                  </span>
+                                                </span>
+                                              ))}
+                                          </div>
+                                        ) : (
+                                          <p className="onpri-upload-note">
+                                            まだ使用可能な画像は設定されていません。
+                                          </p>
+                                        )}
+                                      </div>
+
                                       <div className="onpri-library-head">
                                         <h4 className="onpri-modal-section-title">
                                           画像ライブラリ
