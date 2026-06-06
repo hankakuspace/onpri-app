@@ -1261,6 +1261,34 @@
     });
   }
 
+  function submitOnpriFormAfterPreview(form, submitter) {
+    if (!window.__onpriCustomizerSelection) {
+      return;
+    }
+
+    var selection = window.__onpriCustomizerSelection;
+
+    updateGeneratedPreviewData(
+      selection.container,
+      selection.setting,
+    ).then(function () {
+      applySelectionToProductForm(
+        selection.container,
+        selection.config,
+        selection.setting,
+      );
+
+      form.setAttribute("data-onpri-preview-ready", "true");
+
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit(submitter || undefined);
+        return;
+      }
+
+      form.submit();
+    });
+  }
+
   document.addEventListener("submit", function (event) {
     var form = event.target;
 
@@ -1272,16 +1300,15 @@
       return;
     }
 
-    updateGeneratedPreviewData(
-      window.__onpriCustomizerSelection.container,
-      window.__onpriCustomizerSelection.setting,
-    );
+    if (form.getAttribute("data-onpri-preview-ready") === "true") {
+      form.removeAttribute("data-onpri-preview-ready");
+      return;
+    }
 
-    applySelectionToProductForm(
-      window.__onpriCustomizerSelection.container,
-      window.__onpriCustomizerSelection.config,
-      window.__onpriCustomizerSelection.setting,
-    );
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    submitOnpriFormAfterPreview(form, event.submitter || null);
   }, true);
 
   document.addEventListener("click", function (event) {
@@ -1295,15 +1322,18 @@
 
     var form = button.form || button.closest('form[action*="/cart/add"]');
 
-    if (!form) {
+    if (!form || !form.matches('form[action*="/cart/add"]')) {
       return;
     }
 
-    applySelectionToProductForm(
-      window.__onpriCustomizerSelection.container,
-      window.__onpriCustomizerSelection.config,
-      window.__onpriCustomizerSelection.setting,
-    );
+    if (form.getAttribute("data-onpri-preview-ready") === "true") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    submitOnpriFormAfterPreview(form, button);
   }, true);
 
   if (document.readyState === "loading") {
