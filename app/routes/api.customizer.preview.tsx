@@ -105,6 +105,13 @@ export async function action({ request }: { request: Request }) {
   });
 }
 
-export async function loader() {
+export async function loader({ request }: { request: Request }) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
   return jsonResponse({ error: "Method not allowed" }, 405);
 }
