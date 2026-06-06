@@ -972,6 +972,126 @@ export default function CustomizerPage() {
           .onpri-primary-button:hover {
             background: #006e52;
           }
+
+          .onpri-segment {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+          }
+
+          .onpri-segment-button {
+            min-height: 74px;
+            padding: 14px 16px;
+            border: 1px solid #d2d4d6;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #1f2225;
+            cursor: pointer;
+            text-align: left;
+            display: grid;
+            gap: 6px;
+          }
+
+          .onpri-segment-button.is-active {
+            border-color: #008060;
+            background: #f1f8f5;
+            box-shadow: 0 0 0 1px #008060;
+          }
+
+          .onpri-customization-card-title {
+            font-size: 15px;
+            font-weight: 700;
+          }
+
+          .onpri-customization-card-description {
+            color: #5c5f62;
+            font-size: 13px;
+            line-height: 1.45;
+            font-weight: 400;
+          }
+
+          .onpri-current-images {
+            margin-top: 24px;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+          }
+
+          .onpri-current-images-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 10px;
+          }
+
+          .onpri-current-images-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+          }
+
+          .onpri-current-image-list {
+            display: grid;
+            gap: 8px;
+          }
+
+          .onpri-current-image-row {
+            display: grid;
+            grid-template-columns: 48px minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid #dbe9e3;
+            border-radius: 10px;
+            background: #f1f8f5;
+          }
+
+          .onpri-current-image-row img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border: 1px solid #e3e3e3;
+            border-radius: 8px;
+            background: #ffffff;
+          }
+
+          .onpri-current-image-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2225;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .onpri-current-image-meta {
+            margin-top: 2px;
+            color: #5c5f62;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .onpri-danger-button {
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid #f0c6c6;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #d72c0d;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .onpri-danger-button:hover {
+            background: #fff4f4;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -1166,7 +1286,12 @@ export default function CustomizerPage() {
                                         }
                                         onClick={() => setEditingCustomizationType("registered_image")}
                                       >
-                                        イラスト印刷
+                                        <span className="onpri-customization-card-title">
+                                          イラスト印刷
+                                        </span>
+                                        <span className="onpri-customization-card-description">
+                                          登録済みの画像から、この商品で使えるものを選びます
+                                        </span>
                                       </button>
 
                                       <button
@@ -1178,7 +1303,12 @@ export default function CustomizerPage() {
                                         }
                                         onClick={() => setEditingCustomizationType("text")}
                                       >
-                                        名入れ
+                                        <span className="onpri-customization-card-title">
+                                          名入れ
+                                        </span>
+                                        <span className="onpri-customization-card-description">
+                                          文字・フォント・配置などを購入者が指定できます
+                                        </span>
                                       </button>
                                     </div>
                                   </section>
@@ -1186,29 +1316,51 @@ export default function CustomizerPage() {
                                   {editingCustomizationType === "registered_image" ? (
                                     <section>
                                       <div className="onpri-current-images">
-                                        <h4 className="onpri-current-images-title">
-                                          現在の使用可能画像
-                                        </h4>
+                                        <div className="onpri-current-images-header">
+                                          <h4 className="onpri-current-images-title">
+                                            使用可能な画像
+                                            <span className="onpri-count-badge">
+                                              {editingImageIds.length} 件
+                                            </span>
+                                          </h4>
+                                          <span className="onpri-upload-note">
+                                            この商品で印刷できる画像
+                                          </span>
+                                        </div>
 
                                         {editingImageIds.length > 0 ? (
-                                          <div className="onpri-current-images-grid">
+                                          <div className="onpri-current-image-list">
                                             {registeredImages
                                               .filter((image) =>
                                                 editingImageIds.includes(image.id),
                                               )
                                               .map((image) => (
-                                                <span
+                                                <div
                                                   key={`${product.id}-current-${image.id}`}
-                                                  className="onpri-current-image-chip"
+                                                  className="onpri-current-image-row"
                                                 >
                                                   <img
                                                     src={image.imageUrl}
                                                     alt={`${image.name} サムネイル`}
                                                   />
-                                                  <span className="onpri-current-image-name">
-                                                    {image.name}
-                                                  </span>
-                                                </span>
+
+                                                  <div>
+                                                    <div className="onpri-current-image-title">
+                                                      {image.name}
+                                                    </div>
+                                                    <div className="onpri-current-image-meta">
+                                                      {image.id}
+                                                    </div>
+                                                  </div>
+
+                                                  <button
+                                                    type="button"
+                                                    className="onpri-danger-button"
+                                                    onClick={() => toggleEditingImageId(image.id)}
+                                                  >
+                                                    解除
+                                                  </button>
+                                                </div>
                                               ))}
                                           </div>
                                         ) : (
