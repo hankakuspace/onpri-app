@@ -971,6 +971,10 @@
   }
 
   function applySelectionToProductForm(container, config, setting) {
+    if (!setting || setting.inputType !== "registered_image") {
+      return false;
+    }
+
     var forms = findProductForms(container);
 
     if (!forms.length) {
