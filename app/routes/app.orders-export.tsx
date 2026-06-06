@@ -36,6 +36,10 @@ type OrderNode = {
 
 type OrdersGraphqlResponse = {
   data?: {
+    shop: {
+      myshopifyDomain: string;
+      name: string;
+    };
     orders: {
       edges: Array<{
         node: OrderNode;
@@ -45,6 +49,12 @@ type OrdersGraphqlResponse = {
   errors?: Array<{
     message: string;
   }>;
+};
+
+type OrderRowsResult = {
+  shopName: string;
+  shopDomain: string;
+  rows: CsvRow[];
 };
 
 type CsvRow = {
@@ -227,12 +237,16 @@ function createRows(orders: OrderNode[]): CsvRow[] {
   );
 }
 
-async function getOrderRows(request: Request): Promise<CsvRow[]> {
+async function getOrderRows(request: Request): Promise<OrderRowsResult> {
   const { admin } = await authenticate.admin(request);
 
   const response = await admin.graphql(
     `#graphql
       query OnpriOrdersExport {
+        shop {
+          name
+          myshopifyDomain
+        }
         orders(first: 50, reverse: true, sortKey: CREATED_AT) {
           edges {
             node {
@@ -275,16 +289,25 @@ async function getOrderRows(request: Request): Promise<CsvRow[]> {
 
   const orders = responseJson.data?.orders.edges.map(({ node }) => node) || [];
 
-  return createRows(orders);
+  return {
+    shopName: responseJson.data?.shop.name || "",
+    shopDomain: responseJson.data?.shop.myshopifyDomain || "",
+    rows: createRows(orders),
+  };
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   let rows: CsvRow[] = [];
+  let shopName = "";
+  let shopDomain = "";
   let errorMessage: string | null = null;
 
   try {
-    rows = await getOrderRows(request);
+    const result = await getOrderRows(request);
+    rows = result.rows;
+    shopName = result.shopName;
+    shopDomain = result.shopDomain;
   } catch (error) {
     errorMessage =
       error instanceof Error
@@ -328,11 +351,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     rows,
     onpriRows,
     errorMessage,
+    shopName,
+    shopDomain,
   };
 };
 
 export default function OrdersExportPage() {
-  const { rows, onpriRows, errorMessage } = useLoaderData<typeof loader>();
+  const { rows, onpriRows, errorMessage, shopName, shopDomain } =
+    useLoaderData<typeof loader>();
 
   return (
     <s-page heading="ONPRI 注文CSV出力">
@@ -371,6 +397,7 @@ export default function OrdersExportPage() {
         <div className="onpri-card">
           <s-stack gap="base">
             <s-heading>取得状況</s-heading>
+            <s-paragraph>接続中のストア：{shopName || "-"} / {shopDomain || "-"}</s-paragraph>
             <s-paragraph>取得した注文明細数：{rows.length}件</s-paragraph>
             <s-paragraph>ONPRI項目あり：{onpriRows.length}件</s-paragraph>
           </s-stack>
