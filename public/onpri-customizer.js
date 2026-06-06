@@ -1267,10 +1267,10 @@
     printAreaFrame.style.width = "38%";
     printAreaFrame.style.height = "48%";
     printAreaFrame.style.boxSizing = "border-box";
-    printAreaFrame.style.border = "1.5px solid rgba(76, 213, 255, 0.65)";
-    printAreaFrame.style.background = "rgba(255, 255, 255, 0.02)";
+    printAreaFrame.style.border = "1.5px solid rgba(0, 163, 255, 0.85)";
+    printAreaFrame.style.background = "transparent";
     printAreaFrame.style.pointerEvents = "none";
-    printAreaFrame.style.zIndex = "2";
+    printAreaFrame.style.zIndex = "4";
 
     if (!textValue) {
       overlay.appendChild(printAreaFrame);
