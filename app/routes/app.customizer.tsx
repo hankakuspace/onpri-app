@@ -9,19 +9,97 @@ import {
   createCustomizerProduct,
   createCustomizerProductSetting,
   getCustomizerData,
+  saveCustomizerProductImageAssignments,
 } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
 
+type ShopifyProductForCustomizer = {
+  id: string;
+  title: string;
+  handle: string;
+  vendor: string;
+  featuredImageUrl: string;
+  customizerProductId: string;
+};
+
+type ShopifyProductsGraphqlResponse = {
+  data?: {
+    products: {
+      edges: Array<{
+        node: {
+          id: string;
+          title: string;
+          handle: string;
+          vendor: string;
+          featuredMedia: {
+            preview: {
+              image: {
+                url: string;
+              } | null;
+            } | null;
+          } | null;
+          customizerProductId: {
+            value: string;
+          } | null;
+        };
+      }>;
+    };
+  };
+  errors?: Array<{ message: string }>;
+};
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   const customizerData = await getCustomizerData();
+  const productsResponse = await admin.graphql(
+    `#graphql
+      query OnpriCustomizerProducts {
+        products(first: 50, sortKey: TITLE) {
+          edges {
+            node {
+              id
+              title
+              handle
+              vendor
+              featuredMedia {
+                preview {
+                  image {
+                    url
+                  }
+                }
+              }
+              customizerProductId: metafield(namespace: "onpri", key: "customizer_product_id") {
+                value
+              }
+            }
+          }
+        }
+      }
+    `,
+  );
 
-  return customizerData;
+  const productsJson = (await productsResponse.json()) as ShopifyProductsGraphqlResponse;
+
+  const shopifyProducts: ShopifyProductForCustomizer[] =
+    productsJson.data?.products.edges.map(({ node }) => ({
+      id: node.id,
+      title: node.title,
+      handle: node.handle,
+      vendor: node.vendor,
+      featuredImageUrl: node.featuredMedia?.preview?.image?.url || "",
+      customizerProductId: node.customizerProductId?.value || "",
+    })) || [];
+
+  return {
+    ...customizerData,
+    shop: session.shop,
+    shopifyProducts,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   const formData = await request.formData();
   const intent = String(formData.get("intent") ?? "");
@@ -51,6 +129,75 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return {
       ok: true,
       message: `${imageFiles.length}件の登録済み画像をアップロードしました。`,
+    };
+  }
+
+  if (intent === "save-shopify-product-images") {
+    const productId = String(formData.get("productId") ?? "");
+    const productTitle = String(formData.get("productTitle") ?? "");
+    const productHandle = String(formData.get("productHandle") ?? "");
+    const productVendor = String(formData.get("productVendor") ?? "");
+    const customizerProductId = String(formData.get("customizerProductId") ?? "");
+    const imageIds = formData.getAll("imageIds").map((imageId) => String(imageId));
+
+    const result = await saveCustomizerProductImageAssignments({
+      shop: session.shop,
+      productId,
+      productTitle,
+      productHandle,
+      productVendor,
+      customizerProductId,
+      imageIds,
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    const metafieldsResponse = await admin.graphql(
+      `#graphql
+        mutation OnpriSetCustomizerProductId($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields {
+              id
+              key
+              value
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `,
+      {
+        variables: {
+          metafields: [
+            {
+              ownerId: productId,
+              namespace: "onpri",
+              key: "customizer_product_id",
+              type: "single_line_text_field",
+              value: result.customizerProductId,
+            },
+          ],
+        },
+      },
+    );
+
+    const metafieldsJson = await metafieldsResponse.json();
+    const userErrors = metafieldsJson.data?.metafieldsSet?.userErrors || [];
+
+    if (userErrors.length > 0) {
+      return {
+        ok: false,
+        message: userErrors.map((error: { message: string }) => error.message).join(" / "),
+      };
+    }
+
+    return {
+      ok: true,
+      message: "Shopify商品への登録画像紐づけを保存しました。",
     };
   }
 
@@ -102,21 +249,32 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CustomizerPage() {
-  const { images, products, settings } = useLoaderData<typeof loader>();
+  const { images, products, settings, shopifyProducts } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const [activeSection, setActiveSection] = useState("create-image");
+  const [activeSection, setActiveSection] = useState("shopify-products");
   const [selectedImageFileNames, setSelectedImageFileNames] = useState<string[]>([]);
 
   const menuItems = [
+    { id: "shopify-products", label: "Shopify商品設定" },
     { id: "create-image", label: "登録済み画像を追加" },
     { id: "images", label: "登録済み画像・入力項目" },
-    { id: "create-product", label: "対象商品を追加" },
-    { id: "products", label: "対象商品" },
-    { id: "create-setting", label: "商品別カスタマイズ設定を追加" },
     { id: "settings", label: "商品別カスタマイズ設定" },
   ];
   const productById = new Map(products.map((product) => [product.id, product]));
   const imageById = new Map(images.map((image) => [image.id, image]));
+  const registeredImages = images.filter(
+    (image) => image.type === "登録済み画像" && image.imageUrl,
+  );
+
+  function getAssignedImageIds(customizerProductId: string) {
+    return settings
+      .filter(
+        (setting) =>
+          setting.productId === customizerProductId &&
+          setting.inputType === "registered_image",
+      )
+      .map((setting) => setting.imageId);
+  }
 
   function updateSelectedImageFileNames(files: FileList | null) {
     setSelectedImageFileNames(files ? Array.from(files).map((file) => file.name) : []);
@@ -222,6 +380,56 @@ export default function CustomizerPage() {
             color: #666;
             font-size: 13px;
           }
+
+          .onpri-product-card {
+            display: grid;
+            gap: 16px;
+            padding: 16px;
+            border: 1px solid #e1e1e1;
+            border-radius: 12px;
+            background: #fff;
+          }
+
+          .onpri-product-card + .onpri-product-card {
+            margin-top: 16px;
+          }
+
+          .onpri-product-card-header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+          }
+
+          .onpri-product-card-image {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f6f6f6;
+          }
+
+          .onpri-image-check-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+          }
+
+          .onpri-image-check {
+            display: grid;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+          }
+
+          .onpri-image-check img {
+            width: 100%;
+            height: 96px;
+            object-fit: contain;
+            background: #fff;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -236,6 +444,80 @@ export default function CustomizerPage() {
           </button>
         ))}
       </div>
+
+      {activeSection === "shopify-products" ? (
+        <s-section heading="Shopify商品設定">
+          <s-paragraph>
+            Shopify商品ごとに、商品詳細で選択できる登録画像を設定します。
+          </s-paragraph>
+
+          {shopifyProducts.length === 0 ? (
+            <s-paragraph>Shopify商品が見つかりませんでした。</s-paragraph>
+          ) : (
+            <div>
+              {shopifyProducts.map((product) => {
+                const fallbackCustomizerProductId = `product-${product.handle}`;
+                const customizerProductId =
+                  product.customizerProductId || fallbackCustomizerProductId;
+                const assignedImageIds = getAssignedImageIds(customizerProductId);
+
+                return (
+                  <Form
+                    key={product.id}
+                    method="post"
+                    className="onpri-product-card"
+                  >
+                    <input type="hidden" name="intent" value="save-shopify-product-images" />
+                    <input type="hidden" name="productId" value={product.id} />
+                    <input type="hidden" name="productTitle" value={product.title} />
+                    <input type="hidden" name="productHandle" value={product.handle} />
+                    <input type="hidden" name="productVendor" value={product.vendor} />
+                    <input
+                      type="hidden"
+                      name="customizerProductId"
+                      value={customizerProductId}
+                    />
+
+                    <div className="onpri-product-card-header">
+                      {product.featuredImageUrl ? (
+                        <img
+                          className="onpri-product-card-image"
+                          src={product.featuredImageUrl}
+                          alt={`${product.title} 商品画像`}
+                        />
+                      ) : (
+                        <div className="onpri-product-card-image" />
+                      )}
+
+                      <div>
+                        <strong>{product.title}</strong>
+                        <div>商品設定ID：{customizerProductId}</div>
+                      </div>
+                    </div>
+
+                    <div className="onpri-image-check-grid">
+                      {registeredImages.map((image) => (
+                        <label key={`${product.id}-${image.id}`} className="onpri-image-check">
+                          <input
+                            type="checkbox"
+                            name="imageIds"
+                            value={image.id}
+                            defaultChecked={assignedImageIds.includes(image.id)}
+                          />
+                          <img src={image.imageUrl} alt={`${image.name} サムネイル`} />
+                          <span>{image.name}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <button type="submit">この商品に画像を保存</button>
+                  </Form>
+                );
+              })}
+            </div>
+          )}
+        </s-section>
+      ) : null}
 
       {activeSection === "create-image" ? (
         <s-section heading="登録済み画像を追加">

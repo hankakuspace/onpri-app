@@ -109,6 +109,33 @@ export type CreateCustomizerProductSettingInput = {
   status: string;
 };
 
+export type SaveCustomizerProductImageAssignmentsInput = {
+  shop: string;
+  productId: string;
+  productTitle: string;
+  productHandle: string;
+  productVendor: string;
+  customizerProductId: string;
+  imageIds: string[];
+};
+
+export type SaveCustomizerProductImageAssignmentsResult =
+  | { ok: true; customizerProductId: string }
+  | { ok: false; message: string };
+
+function normalizeCustomizerId(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function createSettingId(productId: string, imageId: string): string {
+  return normalizeCustomizerId(`setting-${productId}-${imageId}`);
+}
+
+
 export type StorefrontCustomizerSetting = {
   id: string;
   imageId: string;
@@ -492,6 +519,116 @@ export async function createCustomizerProductSetting(
     return {
       ok: false,
       message: "Firestoreへの登録に失敗しました。",
+    };
+  }
+}
+
+export async function saveCustomizerProductImageAssignments(
+  input: SaveCustomizerProductImageAssignmentsInput,
+): Promise<SaveCustomizerProductImageAssignmentsResult> {
+  const db = getFirebaseDb();
+
+  if (!db) {
+    return {
+      ok: false,
+      message: "Firebase接続情報が未設定のため、登録できません。",
+    };
+  }
+
+  const shop = input.shop.trim();
+  const shopifyProductId = input.productId.trim();
+  const productTitle = input.productTitle.trim();
+  const productHandle = input.productHandle.trim();
+  const productVendor = input.productVendor.trim();
+  const customizerProductId =
+    normalizeCustomizerId(input.customizerProductId) ||
+    normalizeCustomizerId(`product-${productHandle}`) ||
+    normalizeCustomizerId(`product-${shopifyProductId.split("/").pop() ?? ""}`);
+  const imageIds = Array.from(new Set(input.imageIds.map((imageId) => imageId.trim()).filter(Boolean)));
+
+  if (!shop || !shopifyProductId || !productTitle || !customizerProductId) {
+    return {
+      ok: false,
+      message: "商品情報が不足しています。",
+    };
+  }
+
+  try {
+    const existingProductDoc = await db
+      .collection("customizer_products")
+      .doc(customizerProductId)
+      .get();
+
+    const existingProductData = existingProductDoc.exists
+      ? existingProductDoc.data() ?? {}
+      : {};
+
+    const brandId =
+      String(existingProductData.brandId ?? "").trim() ||
+      normalizeCustomizerId(productVendor) ||
+      normalizeCustomizerId(productHandle) ||
+      "default";
+
+    await db.collection("customizer_products").doc(customizerProductId).set(
+      {
+        shop,
+        productId: shopifyProductId,
+        productTitle,
+        productHandle,
+        brandId,
+        status: "有効",
+        updatedAt: new Date(),
+        createdAt: existingProductData.createdAt ?? new Date(),
+      },
+      { merge: true },
+    );
+
+    const existingSettingsSnapshot = await db
+      .collection("customizer_product_settings")
+      .where("productId", "==", customizerProductId)
+      .where("inputType", "==", "registered_image")
+      .get();
+
+    const batch = db.batch();
+
+    existingSettingsSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    for (const imageId of imageIds) {
+      const imageDoc = await db.collection("customizer_images").doc(imageId).get();
+      const imageData = imageDoc.exists ? imageDoc.data() ?? {} : {};
+      const label = String(imageData.name ?? imageId);
+      const settingId = createSettingId(customizerProductId, imageId);
+
+      batch.set(
+        db.collection("customizer_product_settings").doc(settingId),
+        {
+          productSettingId: customizerProductId,
+          productId: customizerProductId,
+          imageId,
+          label,
+          inputType: "registered_image",
+          status: "有効",
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        },
+        { merge: true },
+      );
+    }
+
+    await batch.commit();
+
+    return {
+      ok: true,
+      customizerProductId,
+    };
+  } catch (error) {
+    console.error("Failed to save customizer product image assignments:", error);
+
+    return {
+      ok: false,
+      message: "商品への画像紐づけ保存に失敗しました。",
     };
   }
 }
