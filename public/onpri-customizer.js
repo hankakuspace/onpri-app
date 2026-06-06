@@ -944,6 +944,35 @@
     });
   }
 
+  function fitMainPreviewTextBoxFontSize(textBox) {
+    if (!textBox) {
+      return;
+    }
+
+    var rect = textBox.getBoundingClientRect();
+    var textValue = textBox.getAttribute("data-onpri-text-value") || textBox.textContent || "";
+
+    if (!rect.width || !rect.height || !textValue) {
+      return;
+    }
+
+    var lines = String(textValue).split(/\n/);
+    var longestLineLength = lines.reduce(function (max, line) {
+      return Math.max(max, (line || "").length);
+    }, 1);
+    var lineCount = Math.max(lines.length, 1);
+
+    var widthBasedSize = rect.width / Math.max(longestLineLength * 0.62, 1);
+    var heightBasedSize = rect.height / Math.max(lineCount * 1.35, 1);
+    var fittedSize = Math.floor(Math.min(widthBasedSize, heightBasedSize));
+
+    fittedSize = Math.max(12, Math.min(72, fittedSize));
+
+    textBox.style.fontSize = fittedSize + "px";
+    textBox.style.lineHeight = "1.15";
+  }
+
+
   function applyTextPreviewTransforms(container) {
     var state = clampTextCustomizerState(getTextCustomizerState(container));
     var left = "calc(50% + " + state.positionX + "%)";
@@ -960,6 +989,7 @@
       textBox.style.width = width;
       textBox.style.transform = "translate(-50%, -50%)";
       textBox.style.transformOrigin = "center center";
+      fitMainPreviewTextBoxFontSize(textBox);
     }
 
     if (selectionFrame && textBox) {
@@ -1281,6 +1311,7 @@
 
     var textBox = document.createElement("div");
     textBox.setAttribute("data-onpri-main-preview-text-box", "true");
+    textBox.setAttribute("data-onpri-text-value", textValue);
     textBox.textContent = textValue;
     textBox.style.position = "absolute";
     textBox.style.boxSizing = "border-box";
