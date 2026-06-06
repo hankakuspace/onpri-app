@@ -891,7 +891,7 @@
 
     if (area === "背面中央") {
       return {
-        left: "34%",
+        left: "31%",
         top: "24%",
         width: "38%",
         height: "48%",
@@ -899,7 +899,7 @@
     }
 
     return {
-      left: "34%",
+      left: "31%",
       top: "24%",
       width: "38%",
       height: "48%",
