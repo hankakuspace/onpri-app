@@ -60,6 +60,14 @@
     });
   }
 
+  function clearThirdPartyCustomizerProperties(form) {
+    var inputs = form.querySelectorAll('input[name^="properties[_customily"], input[name^="properties[customily"], input[name="properties[_preview_image]"], input[name="properties[_Preview Image]"]');
+
+    inputs.forEach(function (input) {
+      input.remove();
+    });
+  }
+
   function getCustomizerState(container) {
     if (!container.__onpriCustomizerState) {
       container.__onpriCustomizerState = {
@@ -986,6 +994,7 @@
 
     forms.forEach(function (form) {
       clearCustomizerProperties(form);
+      clearThirdPartyCustomizerProperties(form);
 
       setHiddenInput(form, "properties[ONPRI商品設定ID]", config.product.id);
       setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
@@ -1021,6 +1030,7 @@
 
     forms.forEach(function (form) {
       clearCustomizerProperties(form);
+      clearThirdPartyCustomizerProperties(form);
 
       setHiddenInput(form, "properties[ONPRI商品設定ID]", config.product.id);
       setHiddenInput(form, "properties[ONPRI商品名]", config.product.productTitle);
