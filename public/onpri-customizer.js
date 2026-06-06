@@ -856,6 +856,64 @@
     applyPreviewTransforms(container);
   }
 
+  function updateTextPreview(container, textValue) {
+    var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
+
+    if (!previewCanvas) {
+      return;
+    }
+
+    var overlayLayer = previewCanvas.querySelector("[data-onpri-preview-overlay-layer]");
+
+    if (!overlayLayer) {
+      overlayLayer = document.createElement("div");
+      overlayLayer.setAttribute("data-onpri-preview-overlay-layer", "true");
+      overlayLayer.style.position = "absolute";
+      overlayLayer.style.display = "block";
+      overlayLayer.style.zIndex = "2";
+      overlayLayer.style.pointerEvents = "none";
+      previewCanvas.appendChild(overlayLayer);
+    }
+
+    overlayLayer.innerHTML = "";
+    syncSmallPreviewOverlayBounds(container);
+
+    if (!textValue) {
+      var placeholder = document.createElement("p");
+      placeholder.setAttribute("data-onpri-preview-placeholder", "true");
+      placeholder.textContent = "名入れ文字を入力するとプレビューが表示されます。";
+      placeholder.style.margin = "0";
+      placeholder.style.color = "#666666";
+      placeholder.style.fontSize = "14px";
+      placeholder.style.textAlign = "center";
+      placeholder.style.position = "absolute";
+      placeholder.style.left = "50%";
+      placeholder.style.top = "50%";
+      placeholder.style.transform = "translate(-50%, -50%)";
+      overlayLayer.appendChild(placeholder);
+      return;
+    }
+
+    var textPreview = document.createElement("div");
+    textPreview.setAttribute("data-onpri-preview-text", "true");
+    textPreview.textContent = textValue;
+    textPreview.style.position = "absolute";
+    textPreview.style.left = "50%";
+    textPreview.style.top = "50%";
+    textPreview.style.transform = "translate(-50%, -50%)";
+    textPreview.style.maxWidth = "70%";
+    textPreview.style.textAlign = "center";
+    textPreview.style.fontSize = "32px";
+    textPreview.style.fontWeight = "700";
+    textPreview.style.lineHeight = "1.2";
+    textPreview.style.color = "#111111";
+    textPreview.style.whiteSpace = "pre-wrap";
+    textPreview.style.wordBreak = "break-word";
+    textPreview.style.pointerEvents = "none";
+
+    overlayLayer.appendChild(textPreview);
+  }
+
 
   function loadImageForCanvas(src) {
     return new Promise(function (resolve, reject) {
@@ -1243,6 +1301,10 @@
     note.style.color = "#666666";
 
     var output = document.createElement("p");
+    var previewWrapper = createPreviewWrapper(config);
+    wrapper.appendChild(previewWrapper);
+    updateTextPreview(container, "");
+
     output.textContent = "名入れ: 未入力";
     output.style.margin = "8px 0 0";
     output.style.fontWeight = "600";
@@ -1250,6 +1312,8 @@
     input.addEventListener("input", function () {
       var textValue = input.value.trim();
       var applied = applyTextSelectionToProductForm(container, config, setting, textValue);
+
+      updateTextPreview(container, textValue);
 
       output.textContent = textValue
         ? "名入れ: " + textValue
