@@ -235,11 +235,21 @@
       mainPreviewImage.style.left = left;
       mainPreviewImage.style.top = top;
       mainPreviewImage.style.width = width;
-      mainPreviewImage.style.height = "auto";
       mainPreviewImage.style.maxWidth = "none";
       mainPreviewImage.style.maxHeight = "none";
       mainPreviewImage.style.transform = "translate(-50%, -50%)";
       mainPreviewImage.style.transformOrigin = "center center";
+
+      if (mainPreviewImage.tagName === "DIV") {
+        var overlayRoot = mainPreviewImage.closest("[data-onpri-main-preview-overlay='true']");
+        var overlayWidth = overlayRoot ? overlayRoot.clientWidth : 0;
+        var logoWidth = overlayWidth * (baseWidthPercent * state.scale / 100);
+
+        mainPreviewImage.style.height = (logoWidth * 200 / 675) + "px";
+        mainPreviewImage.style.display = "block";
+      } else {
+        mainPreviewImage.style.height = "auto";
+      }
     }
 
     var selectionFrame = document.querySelector("[data-onpri-main-selection-frame='true']");
