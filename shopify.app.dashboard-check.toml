@@ -2,7 +2,7 @@
 
 client_id = "2b809e5cd8960bbd40fa7f64e44ce51b"
 name = "onpri-app"
-application_url = "https://alike-armor-drums-meant.trycloudflare.com"
+application_url = "https://onpri-app.vercel.app"
 embedded = true
 
 [webhooks]
@@ -22,7 +22,7 @@ scopes = "read_orders,write_metaobject_definitions,write_metaobjects,write_produ
 
 [auth]
 redirect_urls = [
-  "https://alike-armor-drums-meant.trycloudflare.com/auth/callback"
+  "https://onpri-app.vercel.app/auth/callback"
 ]
 
 [product.metafields.app.demo_info]

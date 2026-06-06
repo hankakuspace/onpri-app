@@ -2,7 +2,7 @@
 
 client_id = "2b809e5cd8960bbd40fa7f64e44ce51b"
 name = "onpri-app"
-application_url = "https://alike-armor-drums-meant.trycloudflare.com"
+application_url = "https://onpri-app.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -45,7 +45,7 @@ api_version = "2026-07"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://alike-armor-drums-meant.trycloudflare.com/auth/callback" ]
+redirect_urls = [ "https://onpri-app.vercel.app/auth/callback" ]
 
 [build]
 automatically_update_urls_on_dev = true
