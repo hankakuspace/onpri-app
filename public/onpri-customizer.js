@@ -209,6 +209,21 @@
     positionOverlayOnImageArea(overlayLayer, productImage, previewCanvas);
   }
 
+  function setMainSelectionControlsVisible(visible) {
+    var opacity = visible ? "1" : "0";
+    var pointerEvents = visible ? "auto" : "none";
+
+    var selectionFrame = document.querySelector("[data-onpri-main-selection-frame='true']");
+    if (selectionFrame) {
+      selectionFrame.style.opacity = opacity;
+    }
+
+    document.querySelectorAll("[data-onpri-main-resize-handle='true']").forEach(function (handle) {
+      handle.style.opacity = opacity;
+      handle.style.pointerEvents = pointerEvents;
+    });
+  }
+
   function applyPreviewTransforms(container) {
     var state = clampCustomizerState(getCustomizerState(container));
     var left = "calc(50% + " + state.positionX + "%)";
@@ -568,6 +583,8 @@
     selectionFrame.style.boxSizing = "border-box";
     selectionFrame.style.pointerEvents = "none";
     selectionFrame.style.zIndex = "5";
+    selectionFrame.style.opacity = "0";
+    selectionFrame.style.transition = "opacity 120ms ease";
 
     var corners = [
       { key: "nw", cursor: "nwse-resize" },
@@ -601,6 +618,9 @@
       handle.style.fontSize = "0";
       handle.style.zIndex = "6";
       handle.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.25)";
+      handle.style.opacity = "0";
+      handle.style.pointerEvents = "none";
+      handle.style.transition = "opacity 120ms ease";
       handle.style.appearance = "none";
       handle.style.webkitAppearance = "none";
 
@@ -609,10 +629,35 @@
       return handle;
     });
 
+    image.addEventListener("mouseenter", function () {
+      setMainSelectionControlsVisible(true);
+    });
+
+    selectionFrame.addEventListener("mouseenter", function () {
+      setMainSelectionControlsVisible(true);
+    });
+
+    overlay.addEventListener("mouseleave", function () {
+      setMainSelectionControlsVisible(false);
+    });
+
+    document.addEventListener("click", function (event) {
+      if (
+        event.target &&
+        event.target.closest &&
+        event.target.closest("[data-onpri-main-preview-overlay='true']")
+      ) {
+        return;
+      }
+
+      setMainSelectionControlsVisible(false);
+    });
+
     makeMainPreviewImageDraggable(container, image, resizeHandles);
     overlay.appendChild(image);
     overlay.appendChild(selectionFrame);
     overlayRoot.appendChild(overlay);
+    setMainSelectionControlsVisible(false);
     applyPreviewTransforms(container);
   }
 
