@@ -355,13 +355,13 @@ export default function CustomizerPage() {
       </s-section>
 
       <s-section heading="次の実装予定">
-        <s-list>
+        <ul>
           <s-list-item>登録済み画像の管理</s-list-item>
           <s-list-item>商品別カスタマイズ設定</s-list-item>
           <s-list-item>ストアフロント表示用UI</s-list-item>
           <s-list-item>Canvasプレビュー生成</s-list-item>
           <s-list-item>line item properties への保存</s-list-item>
-        </s-list>
+        </ul>
       </s-section>
     </s-page>
   );

@@ -316,7 +316,7 @@ export default function OrdersExportPage() {
   return (
     <s-page heading="ONPRI 注文CSV出力">
       <s-section>
-        <s-card>
+        <div className="onpri-card">
           <s-stack gap="base">
             <s-heading>CSV出力</s-heading>
             <s-paragraph>
@@ -329,21 +329,21 @@ export default function OrdersExportPage() {
               CSVをダウンロード
             </s-button>
           </s-stack>
-        </s-card>
+        </div>
       </s-section>
 
       <s-section>
-        <s-card>
+        <div className="onpri-card">
           <s-stack gap="base">
             <s-heading>取得状況</s-heading>
             <s-paragraph>取得した注文明細数：{rows.length}件</s-paragraph>
             <s-paragraph>ONPRI項目あり：{onpriRows.length}件</s-paragraph>
           </s-stack>
-        </s-card>
+        </div>
       </s-section>
 
       <s-section>
-        <s-card>
+        <div className="onpri-card">
           <s-stack gap="base">
             <s-heading>ONPRI項目ありの注文明細</s-heading>
             {onpriRows.length === 0 ? (
@@ -387,7 +387,7 @@ export default function OrdersExportPage() {
               </table>
             )}
           </s-stack>
-        </s-card>
+        </div>
       </s-section>
     </s-page>
   );
