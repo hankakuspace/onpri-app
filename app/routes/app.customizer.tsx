@@ -1,5 +1,5 @@
 // app/routes/app.customizer.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -270,6 +270,17 @@ export default function CustomizerPage() {
   const [editingCustomizationType, setEditingCustomizationType] =
     useState<"registered_image" | "text">("registered_image");
   const [librarySearchQuery, setLibrarySearchQuery] = useState("");
+
+  useEffect(() => {
+    if (
+      actionData &&
+      typeof actionData === "object" &&
+      "ok" in actionData &&
+      actionData.ok
+    ) {
+      closeProductImageEditor();
+    }
+  }, [actionData]);
 
   const menuItems = [
     { id: "shopify-products", label: "Shopify商品設定" },
