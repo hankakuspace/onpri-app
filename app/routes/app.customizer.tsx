@@ -372,7 +372,7 @@ export default function CustomizerPage() {
   }
 
   return (
-    <s-page heading="ONPRI Customizer">
+    <div className="onpri-customizer-full-page">
       <style>
         {`
           .onpri-admin-table-wrap {
@@ -1448,9 +1448,814 @@ export default function CustomizerPage() {
             color: #6d7175;
           }
 
+          /* Force Shopify admin orders-like full width layout */
+          .onpri-admin-page,
+          .onpri-admin-wrap {
+            width: 100vw !important;
+            max-width: none !important;
+            margin-left: calc(50% - 50vw) !important;
+            margin-right: calc(50% - 50vw) !important;
+            padding: 12px 0 0 !important;
+          }
+
+          .onpri-admin-menu {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 0 12px !important;
+            padding: 0 16px !important;
+            display: flex !important;
+            gap: 8px !important;
+          }
+
+          .onpri-admin-menu button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+          }
+
+          .onpri-admin-menu button.is-active {
+            background: #202223 !important;
+            color: #ffffff !important;
+          }
+
+          .onpri-admin-section {
+            width: calc(100vw - 32px) !important;
+            max-width: none !important;
+            margin: 0 16px !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+            overflow: hidden !important;
+          }
+
+          .onpri-admin-section-header {
+            min-height: 44px !important;
+            padding: 0 !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #ffffff !important;
+            display: grid !important;
+            grid-template-columns: 1fr auto !important;
+            align-items: center !important;
+          }
+
+          .onpri-admin-section-header > div:first-child {
+            padding: 9px 16px !important;
+          }
+
+          .onpri-admin-section-title {
+            display: none !important;
+          }
+
+          .onpri-admin-section-description {
+            margin: 0 !important;
+            color: #616161 !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+          }
+
+          .onpri-admin-toolbar {
+            height: 44px !important;
+            padding: 0 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border-left: 1px solid #ebebeb !important;
+          }
+
+          .onpri-admin-toolbar-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+          }
+
+          .onpri-admin-toolbar-button:hover {
+            background: #dcdcdc !important;
+          }
+
+          .onpri-admin-table-wrap {
+            width: 100% !important;
+            overflow-x: auto !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-table {
+            width: 100% !important;
+            min-width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            font-size: 13px !important;
+          }
+
+          .onpri-admin-table thead th {
+            height: 36px !important;
+            padding: 0 12px !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #f7f7f7 !important;
+            color: #616161 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+          }
+
+          .onpri-admin-table tbody td {
+            height: 44px !important;
+            padding: 6px 12px !important;
+            border-bottom: 1px solid #ebebeb !important;
+            color: #202223 !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+
+          .onpri-admin-table tbody tr:last-child td {
+            border-bottom: 0 !important;
+          }
+
+          .onpri-admin-table tbody tr:hover td {
+            background: #f9fafb !important;
+          }
+
+          .onpri-admin-table th:nth-child(1),
+          .onpri-admin-table td:nth-child(1) {
+            width: 110px !important;
+          }
+
+          .onpri-admin-table th:nth-child(2),
+          .onpri-admin-table td:nth-child(2) {
+            width: auto !important;
+          }
+
+          .onpri-admin-table th:nth-child(3),
+          .onpri-admin-table td:nth-child(3) {
+            width: 120px !important;
+          }
+
+          .onpri-admin-table th:nth-child(4),
+          .onpri-admin-table td:nth-child(4) {
+            width: 150px !important;
+          }
+
+          .onpri-admin-table th:nth-child(5),
+          .onpri-admin-table td:nth-child(5) {
+            width: 170px !important;
+          }
+
+          .onpri-admin-table th:nth-child(6),
+          .onpri-admin-table td:nth-child(6) {
+            width: 96px !important;
+            text-align: right !important;
+          }
+
+          .onpri-admin-table .onpri-product-image,
+          .onpri-admin-table .onpri-assigned-image {
+            width: 32px !important;
+            height: 32px !important;
+            object-fit: contain !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 6px !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-table .onpri-assigned-images {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+            align-items: center !important;
+          }
+
+          .onpri-admin-edit-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 1px solid #8c9196 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+          }
+
+          .onpri-admin-edit-button:hover {
+            background: #f6f6f7 !important;
+          }
+
+          /* Fix embedded app overflow: use app container width, not viewport width */
+          .onpri-admin-page,
+          .onpri-admin-wrap {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 12px 16px 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+
+          .onpri-admin-menu {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 0 12px !important;
+            padding: 0 !important;
+            display: flex !important;
+            gap: 8px !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-admin-section {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-admin-table-wrap {
+            width: 100% !important;
+            overflow-x: auto !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-table {
+            width: 100% !important;
+            min-width: 0 !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            font-size: 13px !important;
+          }
+
+          .onpri-admin-table th:nth-child(1),
+          .onpri-admin-table td:nth-child(1) {
+            width: 9% !important;
+          }
+
+          .onpri-admin-table th:nth-child(2),
+          .onpri-admin-table td:nth-child(2) {
+            width: 34% !important;
+          }
+
+          .onpri-admin-table th:nth-child(3),
+          .onpri-admin-table td:nth-child(3) {
+            width: 12% !important;
+          }
+
+          .onpri-admin-table th:nth-child(4),
+          .onpri-admin-table td:nth-child(4) {
+            width: 15% !important;
+          }
+
+          .onpri-admin-table th:nth-child(5),
+          .onpri-admin-table td:nth-child(5) {
+            width: 18% !important;
+          }
+
+          .onpri-admin-table th:nth-child(6),
+          .onpri-admin-table td:nth-child(6) {
+            width: 12% !important;
+            text-align: right !important;
+          }
+
+          .onpri-admin-table thead th {
+            height: 36px !important;
+            padding: 0 12px !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #f7f7f7 !important;
+            color: #616161 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+          }
+
+          .onpri-admin-table thead th:last-child {
+            text-align: right !important;
+          }
+
+          .onpri-admin-table tbody td {
+            height: 44px !important;
+            padding: 6px 12px !important;
+            border-bottom: 1px solid #ebebeb !important;
+            color: #202223 !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+
+          .onpri-admin-table tbody tr:last-child td {
+            border-bottom: 0 !important;
+          }
+
+          .onpri-admin-table tbody tr:hover td {
+            background: #f9fafb !important;
+          }
+
+          .onpri-admin-table .onpri-product-image,
+          .onpri-admin-table .onpri-assigned-image {
+            width: 32px !important;
+            height: 32px !important;
+            object-fit: contain !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 6px !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-table .onpri-assigned-images {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+            align-items: center !important;
+            overflow: hidden !important;
+          }
+
+          .onpri-admin-edit-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 1px solid #8c9196 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            white-space: nowrap !important;
+          }
+
+          .onpri-admin-edit-button:hover {
+            background: #f6f6f7 !important;
+          }
+
+          /* Final layout fix: match Shopify admin content width without 100vw overflow */
+          .onpri-admin-page,
+          .onpri-admin-wrap {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 16px !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-admin-menu {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 0 12px !important;
+            padding: 0 !important;
+            display: flex !important;
+            gap: 8px !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-admin-menu button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-admin-menu button.is-active {
+            background: #202223 !important;
+            color: #ffffff !important;
+          }
+
+          .onpri-admin-section {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-admin-section-header {
+            min-height: 44px !important;
+            padding: 0 !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #ffffff !important;
+            display: grid !important;
+            grid-template-columns: 1fr auto !important;
+            align-items: center !important;
+          }
+
+          .onpri-admin-section-header > div:first-child {
+            padding: 9px 16px !important;
+          }
+
+          .onpri-admin-section-title {
+            display: none !important;
+          }
+
+          .onpri-admin-section-description {
+            margin: 0 !important;
+            color: #616161 !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+          }
+
+          .onpri-admin-toolbar {
+            height: 44px !important;
+            padding: 0 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border-left: 1px solid #ebebeb !important;
+          }
+
+          .onpri-admin-toolbar-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-admin-table-wrap {
+            width: 100% !important;
+            overflow-x: auto !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-table {
+            width: 100% !important;
+            min-width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            font-size: 13px !important;
+          }
+
+          .onpri-admin-table thead th {
+            height: 36px !important;
+            padding: 0 12px !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #f7f7f7 !important;
+            color: #616161 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+          }
+
+          .onpri-admin-table tbody td {
+            height: 44px !important;
+            padding: 6px 12px !important;
+            border-bottom: 1px solid #ebebeb !important;
+            color: #202223 !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+
+          .onpri-admin-table tbody tr:hover td {
+            background: #f9fafb !important;
+          }
+
+          .onpri-admin-table th:nth-child(1),
+          .onpri-admin-table td:nth-child(1) {
+            width: 10% !important;
+          }
+
+          .onpri-admin-table th:nth-child(2),
+          .onpri-admin-table td:nth-child(2) {
+            width: 36% !important;
+          }
+
+          .onpri-admin-table th:nth-child(3),
+          .onpri-admin-table td:nth-child(3) {
+            width: 12% !important;
+          }
+
+          .onpri-admin-table th:nth-child(4),
+          .onpri-admin-table td:nth-child(4) {
+            width: 16% !important;
+          }
+
+          .onpri-admin-table th:nth-child(5),
+          .onpri-admin-table td:nth-child(5) {
+            width: 16% !important;
+          }
+
+          .onpri-admin-table th:nth-child(6),
+          .onpri-admin-table td:nth-child(6) {
+            width: 10% !important;
+            text-align: right !important;
+          }
+
+          .onpri-admin-table thead th:last-child {
+            text-align: right !important;
+          }
+
+          .onpri-admin-table .onpri-product-image,
+          .onpri-admin-table .onpri-assigned-image {
+            width: 32px !important;
+            height: 32px !important;
+            object-fit: contain !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 6px !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-admin-edit-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 1px solid #8c9196 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-admin-edit-button:hover {
+            background: #f6f6f7 !important;
+          }
+
           .onpri-muted-text {
             color: #6d7175;
           }
+
+          /* ONPRI final full-width layout */
+          .onpri-customizer-full-page {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-page,
+          .onpri-customizer-full-page .onpri-admin-wrap {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: visible !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-menu {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 0 12px !important;
+            padding: 0 !important;
+            display: flex !important;
+            gap: 8px !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-menu button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-menu button.is-active {
+            background: #202223 !important;
+            color: #ffffff !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-section {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-section-header {
+            min-height: 44px !important;
+            padding: 0 !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #ffffff !important;
+            display: grid !important;
+            grid-template-columns: 1fr auto !important;
+            align-items: center !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-section-header > div:first-child {
+            padding: 9px 16px !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-section-title {
+            display: none !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-section-description {
+            margin: 0 !important;
+            color: #616161 !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-toolbar {
+            height: 44px !important;
+            padding: 0 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border-left: 1px solid #ebebeb !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-toolbar-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 0 !important;
+            border-radius: 8px !important;
+            background: #e3e3e3 !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table-wrap {
+            width: 100% !important;
+            overflow-x: auto !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table {
+            width: 100% !important;
+            min-width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            font-size: 13px !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table thead th {
+            height: 36px !important;
+            padding: 0 12px !important;
+            border-bottom: 1px solid #dcdfe3 !important;
+            background: #f7f7f7 !important;
+            color: #616161 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table tbody td {
+            height: 44px !important;
+            padding: 6px 12px !important;
+            border-bottom: 1px solid #ebebeb !important;
+            color: #202223 !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table tbody tr:hover td {
+            background: #f9fafb !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(1),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(1) {
+            width: 10% !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(2),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(2) {
+            width: 36% !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(3),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(3) {
+            width: 12% !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(4),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(4) {
+            width: 16% !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(5),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(5) {
+            width: 16% !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table th:nth-child(6),
+          .onpri-customizer-full-page .onpri-admin-table td:nth-child(6) {
+            width: 10% !important;
+            text-align: right !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table thead th:last-child {
+            text-align: right !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table .onpri-product-image,
+          .onpri-customizer-full-page .onpri-admin-table .onpri-assigned-image {
+            width: 32px !important;
+            height: 32px !important;
+            object-fit: contain !important;
+            border: 1px solid #dcdfe3 !important;
+            border-radius: 6px !important;
+            background: #ffffff !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-edit-button {
+            min-height: 28px !important;
+            padding: 0 12px !important;
+            border: 1px solid #8c9196 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #202223 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-edit-button:hover {
+            background: #f6f6f7 !important;
+          }
+
+
+          /* ONPRI table header cleanup */
+          .onpri-customizer-full-page .onpri-admin-section-header {
+            grid-template-columns: 1fr !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table thead th {
+            height: 36px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            vertical-align: middle !important;
+            line-height: 36px !important;
+          }
+
+          .onpri-customizer-full-page .onpri-admin-table thead th:last-child {
+            text-align: left !important;
+          }
+
+
+          /* ONPRI modal text alignment fix */
+          .onpri-customizer-full-page .onpri-edit-modal,
+          .onpri-customizer-full-page .onpri-edit-modal * {
+            text-align: left;
+          }
+
+          .onpri-customizer-full-page .onpri-edit-modal-close {
+            text-align: center;
+          }
+
+          .onpri-customizer-full-page .onpri-footer-actions {
+            justify-content: flex-end;
+          }
+
+          .onpri-customizer-full-page .onpri-footer-actions button {
+            text-align: center;
+          }
+
+          .onpri-customizer-full-page .onpri-status-badge {
+            justify-content: center;
+          }
+
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -1476,11 +2281,7 @@ export default function CustomizerPage() {
               </p>
             </div>
 
-            <div className="onpri-admin-toolbar">
-              <button type="button" className="onpri-admin-toolbar-button">
-                すべて
-              </button>
-            </div>
+
           </div>
 
           {shopifyProducts.length === 0 ? (
@@ -2167,7 +2968,7 @@ export default function CustomizerPage() {
       ) : null}
 
 
-    </s-page>
+    </div>
   );
 }
 
