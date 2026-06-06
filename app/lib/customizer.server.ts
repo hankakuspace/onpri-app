@@ -115,7 +115,9 @@ export type SaveCustomizerProductImageAssignmentsInput = {
   productTitle: string;
   productHandle: string;
   productVendor: string;
+  productBrandId: string;
   customizerProductId: string;
+  customizationType: string;
   imageIds: string[];
 };
 
@@ -540,10 +542,12 @@ export async function saveCustomizerProductImageAssignments(
   const productTitle = input.productTitle.trim();
   const productHandle = input.productHandle.trim();
   const productVendor = input.productVendor.trim();
+  const productBrandId = input.productBrandId.trim();
   const customizerProductId =
     normalizeCustomizerId(input.customizerProductId) ||
     normalizeCustomizerId(`product-${productHandle}`) ||
     normalizeCustomizerId(`product-${shopifyProductId.split("/").pop() ?? ""}`);
+  const customizationType = input.customizationType.trim() || "registered_image";
   const imageIds = Array.from(new Set(input.imageIds.map((imageId) => imageId.trim()).filter(Boolean)));
 
   if (!shop || !shopifyProductId || !productTitle || !customizerProductId) {
@@ -564,6 +568,7 @@ export async function saveCustomizerProductImageAssignments(
       : {};
 
     const brandId =
+      productBrandId ||
       String(existingProductData.brandId ?? "").trim() ||
       normalizeCustomizerId(productVendor) ||
       normalizeCustomizerId(productHandle) ||
@@ -586,35 +591,56 @@ export async function saveCustomizerProductImageAssignments(
     const existingSettingsSnapshot = await db
       .collection("customizer_product_settings")
       .where("productId", "==", customizerProductId)
-      .where("inputType", "==", "registered_image")
       .get();
 
     const batch = db.batch();
 
     existingSettingsSnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+      const data = doc.data();
+      const inputType = String(data.inputType ?? "");
+
+      if (inputType === "registered_image" || inputType === "text") {
+        batch.delete(doc.ref);
+      }
     });
 
-    for (const imageId of imageIds) {
-      const imageDoc = await db.collection("customizer_images").doc(imageId).get();
-      const imageData = imageDoc.exists ? imageDoc.data() ?? {} : {};
-      const label = String(imageData.name ?? imageId);
-      const settingId = createSettingId(customizerProductId, imageId);
-
+    if (customizationType === "text") {
       batch.set(
-        db.collection("customizer_product_settings").doc(settingId),
+        db.collection("customizer_product_settings").doc(createSettingId(customizerProductId, "text-01")),
         {
           productSettingId: customizerProductId,
           productId: customizerProductId,
-          imageId,
-          label,
-          inputType: "registered_image",
+          imageId: "text-01",
+          label: "名入れ",
+          inputType: "text",
           status: "有効",
           updatedAt: new Date(),
           createdAt: new Date(),
         },
         { merge: true },
       );
+    } else {
+      for (const imageId of imageIds) {
+        const imageDoc = await db.collection("customizer_images").doc(imageId).get();
+        const imageData = imageDoc.exists ? imageDoc.data() ?? {} : {};
+        const label = String(imageData.name ?? imageId);
+        const settingId = createSettingId(customizerProductId, imageId);
+
+        batch.set(
+          db.collection("customizer_product_settings").doc(settingId),
+          {
+            productSettingId: customizerProductId,
+            productId: customizerProductId,
+            imageId,
+            label,
+            inputType: "registered_image",
+            status: "有効",
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          },
+          { merge: true },
+        );
+      }
     }
 
     await batch.commit();

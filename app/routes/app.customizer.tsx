@@ -18,6 +18,7 @@ type ShopifyProductForCustomizer = {
   title: string;
   handle: string;
   vendor: string;
+  brandId: string;
   featuredImageUrl: string;
   customizerProductId: string;
 };
@@ -31,6 +32,9 @@ type ShopifyProductsGraphqlResponse = {
           title: string;
           handle: string;
           vendor: string;
+          brandId: {
+            value: string;
+          } | null;
           featuredMedia: {
             preview: {
               image: {
@@ -62,6 +66,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               title
               handle
               vendor
+              brandId: metafield(namespace: "onpri", key: "brand_id") {
+                value
+              }
               featuredMedia {
                 preview {
                   image {
@@ -87,6 +94,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       title: node.title,
       handle: node.handle,
       vendor: node.vendor,
+      brandId: node.brandId?.value || "",
       featuredImageUrl: node.featuredMedia?.preview?.image?.url || "",
       customizerProductId: node.customizerProductId?.value || "",
     })) || [];
@@ -137,7 +145,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const productTitle = String(formData.get("productTitle") ?? "");
     const productHandle = String(formData.get("productHandle") ?? "");
     const productVendor = String(formData.get("productVendor") ?? "");
+    const productBrandId = String(formData.get("productBrandId") ?? "");
     const customizerProductId = String(formData.get("customizerProductId") ?? "");
+    const customizationType = String(formData.get("customizationType") ?? "registered_image");
     const imageIds = formData.getAll("imageIds").map((imageId) => String(imageId));
 
     const result = await saveCustomizerProductImageAssignments({
@@ -146,7 +156,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       productTitle,
       productHandle,
       productVendor,
+      productBrandId,
       customizerProductId,
+      customizationType,
       imageIds,
     });
 
@@ -255,6 +267,8 @@ export default function CustomizerPage() {
   const [selectedImageFileNames, setSelectedImageFileNames] = useState<string[]>([]);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingImageIds, setEditingImageIds] = useState<string[]>([]);
+  const [editingCustomizationType, setEditingCustomizationType] =
+    useState<"registered_image" | "text">("registered_image");
 
   const menuItems = [
     { id: "shopify-products", label: "Shopify商品設定" },
@@ -276,14 +290,43 @@ export default function CustomizerPage() {
       .map((setting) => setting.imageId);
   }
 
-  function openProductImageEditor(productId: string, assignedImageIds: string[]) {
+  function getCustomizationTypes(customizerProductId: string) {
+    const targetSettings = settings.filter(
+      (setting) => setting.productId === customizerProductId,
+    );
+    const types: string[] = [];
+
+    if (targetSettings.some((setting) => setting.inputType === "text")) {
+      types.push("名入れ");
+    }
+
+    if (targetSettings.some((setting) => setting.inputType === "registered_image")) {
+      types.push("イラスト印刷");
+    }
+
+    return types.length > 0 ? types.join(" / ") : "未設定";
+  }
+
+  function getDefaultCustomizationType(customizerProductId: string) {
+    const targetSettings = settings.filter(
+      (setting) => setting.productId === customizerProductId,
+    );
+
+    return targetSettings.some((setting) => setting.inputType === "text")
+      ? "text"
+      : "registered_image";
+  }
+
+  function openProductImageEditor(productId: string, assignedImageIds: string[], customizationType: "registered_image" | "text") {
     setEditingProductId(productId);
     setEditingImageIds(assignedImageIds);
+    setEditingCustomizationType(customizationType);
   }
 
   function closeProductImageEditor() {
     setEditingProductId(null);
     setEditingImageIds([]);
+    setEditingCustomizationType("registered_image");
   }
 
   function toggleEditingImageId(imageId: string) {
@@ -457,8 +500,8 @@ export default function CustomizerPage() {
           }
 
           .onpri-assigned-image {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -539,13 +582,29 @@ export default function CustomizerPage() {
 
           .onpri-library-card img {
             width: 100%;
-            height: 96px;
+            height: 56px;
             object-fit: contain;
             background: #fff;
           }
 
           .onpri-library-card button {
             width: 100%;
+          }
+
+          .onpri-customization-type-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+
+          .onpri-customization-type-options label {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            background: #fafafa;
           }
 
           .onpri-assigned-images {
@@ -590,7 +649,7 @@ export default function CustomizerPage() {
       {activeSection === "shopify-products" ? (
         <s-section heading="Shopify商品設定">
           <s-paragraph>
-            Shopify商品ごとに、商品詳細で選択できる登録画像を設定します。
+            Shopify商品ごとに、商品詳細で使えるカスタマイズ項目を設定します。
           </s-paragraph>
 
           {shopifyProducts.length === 0 ? (
@@ -603,7 +662,8 @@ export default function CustomizerPage() {
                     <th>ブランド</th>
                     <th>商品名</th>
                     <th>商品画像</th>
-                    <th>紐づいている画像</th>
+                    <th>対応カスタマイズ</th>
+                    <th>使用可能な画像</th>
                     <th>編集</th>
                   </tr>
                 </thead>
@@ -616,11 +676,14 @@ export default function CustomizerPage() {
                     const assignedImages = registeredImages.filter((image) =>
                       assignedImageIds.includes(image.id),
                     );
+                    const customizationTypeLabel = getCustomizationTypes(customizerProductId);
+                    const defaultCustomizationType =
+                      getDefaultCustomizationType(customizerProductId);
                     const isEditing = editingProductId === product.id;
 
                     return (
                       <tr key={product.id}>
-                        <td>{product.vendor || "未設定"}</td>
+                        <td>{product.brandId || "未設定"}</td>
                         <td>{product.title}</td>
                         <td>
                           {product.featuredImageUrl ? (
@@ -633,6 +696,7 @@ export default function CustomizerPage() {
                             "未設定"
                           )}
                         </td>
+                        <td>{customizationTypeLabel}</td>
                         <td>
                           {assignedImages.length > 0 ? (
                             <div className="onpri-assigned-images">
@@ -654,7 +718,11 @@ export default function CustomizerPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              openProductImageEditor(product.id, assignedImageIds)
+                              openProductImageEditor(
+                                product.id,
+                                assignedImageIds,
+                                defaultCustomizationType,
+                              )
                             }
                           >
                             編集
@@ -693,23 +761,36 @@ export default function CustomizerPage() {
                                 />
                                 <input
                                   type="hidden"
+                                  name="productBrandId"
+                                  value={product.brandId}
+                                />
+                                <input
+                                  type="hidden"
                                   name="customizerProductId"
                                   value={customizerProductId}
                                 />
 
-                                {editingImageIds.map((imageId) => (
-                                  <input
-                                    key={`${product.id}-selected-${imageId}`}
-                                    type="hidden"
-                                    name="imageIds"
-                                    value={imageId}
-                                  />
-                                ))}
+                                <input
+                                  type="hidden"
+                                  name="customizationType"
+                                  value={editingCustomizationType}
+                                />
+
+                                {editingCustomizationType === "registered_image"
+                                  ? editingImageIds.map((imageId) => (
+                                      <input
+                                        key={`${product.id}-selected-${imageId}`}
+                                        type="hidden"
+                                        name="imageIds"
+                                        value={imageId}
+                                      />
+                                    ))
+                                  : null}
 
                                 <div className="onpri-edit-modal-header">
                                   <div>
                                     <h3 style={{ margin: 0 }}>{product.title}</h3>
-                                    <div>ブランド：{product.vendor || "未設定"}</div>
+                                    <div>ブランド：{product.brandId || "未設定"}</div>
                                   </div>
                                   <button
                                     type="button"
@@ -722,7 +803,30 @@ export default function CustomizerPage() {
                                 </div>
 
                                 <div className="onpri-edit-modal-section">
-                                  <h4>現在紐づいている画像</h4>
+                                  <h4>カスタマイズ種別</h4>
+                                  <div className="onpri-customization-type-options">
+                                    <label>
+                                      <input
+                                        type="radio"
+                                        checked={editingCustomizationType === "registered_image"}
+                                        onChange={() => setEditingCustomizationType("registered_image")}
+                                      />
+                                      イラスト印刷
+                                    </label>
+                                    <label>
+                                      <input
+                                        type="radio"
+                                        checked={editingCustomizationType === "text"}
+                                        onChange={() => setEditingCustomizationType("text")}
+                                      />
+                                      名入れ
+                                    </label>
+                                  </div>
+                                </div>
+
+                                {editingCustomizationType === "registered_image" ? (
+                                  <div className="onpri-edit-modal-section">
+                                    <h4>使用可能な画像</h4>
                                   {editingImageIds.length > 0 ? (
                                     <div className="onpri-assigned-images">
                                       {registeredImages
@@ -786,6 +890,14 @@ export default function CustomizerPage() {
                                     })}
                                   </div>
                                 </div>
+
+                                ) : (
+                                  <div className="onpri-edit-modal-section">
+                                    <p className="onpri-upload-note">
+                                      この商品では名入れを使用します。名入れ入力欄とプレビュー合成は次工程で実装します。
+                                    </p>
+                                  </div>
+                                )}
 
                                 <div className="onpri-edit-modal-section">
                                   <button type="submit">保存</button>
