@@ -856,7 +856,95 @@
     applyPreviewTransforms(container);
   }
 
-  function syncMainProductTextPreviewOverlay(textValue) {
+  function getDefaultTextCustomizerOptions() {
+    return {
+      area: "前面",
+      position: "中央",
+      fontSize: "中",
+      fontColor: "白",
+      fontFamily: "ゴシック",
+    };
+  }
+
+  function normalizeTextCustomizerOptions(options) {
+    var defaults = getDefaultTextCustomizerOptions();
+    var normalized = options || {};
+
+    return {
+      area: normalized.area || defaults.area,
+      position: normalized.position || defaults.position,
+      fontSize: normalized.fontSize || defaults.fontSize,
+      fontColor: normalized.fontColor || defaults.fontColor,
+      fontFamily: normalized.fontFamily || defaults.fontFamily,
+    };
+  }
+
+  function getTextPreviewPositionStyles(position) {
+    if (position === "上") {
+      return { left: "50%", top: "40%" };
+    }
+
+    if (position === "下") {
+      return { left: "50%", top: "64%" };
+    }
+
+    if (position === "左胸") {
+      return { left: "42%", top: "42%" };
+    }
+
+    return { left: "50%", top: "52%" };
+  }
+
+  function getTextPreviewFontSize(fontSize) {
+    if (fontSize === "小") {
+      return "clamp(22px, 3.2vw, 48px)";
+    }
+
+    if (fontSize === "大") {
+      return "clamp(34px, 5.2vw, 84px)";
+    }
+
+    return "clamp(28px, 4.5vw, 72px)";
+  }
+
+  function getTextPreviewColor(fontColor) {
+    if (fontColor === "黒") {
+      return "#111111";
+    }
+
+    if (fontColor === "赤") {
+      return "#d32f2f";
+    }
+
+    if (fontColor === "青") {
+      return "#1976d2";
+    }
+
+    return "#ffffff";
+  }
+
+  function getTextPreviewFontFamily(fontFamily) {
+    if (fontFamily === "明朝") {
+      return "'Times New Roman', 'Yu Mincho', 'Hiragino Mincho ProN', serif";
+    }
+
+    if (fontFamily === "丸ゴシック") {
+      return "'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif";
+    }
+
+    return "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif";
+  }
+
+  function getTextPreviewShadow(fontColor) {
+    if (fontColor === "白") {
+      return "0 3px 10px rgba(0, 0, 0, 0.55)";
+    }
+
+    return "0 2px 6px rgba(255, 255, 255, 0.35)";
+  }
+
+
+  function syncMainProductTextPreviewOverlay(textValue, options) {
     var mainImage = getMainProductImageElement();
     var overlayRoot = getMainProductOverlayRoot(mainImage);
 
@@ -874,6 +962,8 @@
       return;
     }
 
+    var normalizedOptions = normalizeTextCustomizerOptions(options);
+    var positionStyles = getTextPreviewPositionStyles(normalizedOptions.position);
     var computedStyle = window.getComputedStyle(overlayRoot);
 
     if (computedStyle.position === "static") {
@@ -893,17 +983,18 @@
     textPreview.setAttribute("data-onpri-main-preview-text", "true");
     textPreview.textContent = textValue;
     textPreview.style.position = "absolute";
-    textPreview.style.left = "50%";
-    textPreview.style.top = "52%";
+    textPreview.style.left = positionStyles.left;
+    textPreview.style.top = positionStyles.top;
     textPreview.style.transform = "translate(-50%, -50%)";
     textPreview.style.maxWidth = "72%";
     textPreview.style.textAlign = "center";
-    textPreview.style.fontSize = "clamp(28px, 4.5vw, 72px)";
+    textPreview.style.fontSize = getTextPreviewFontSize(normalizedOptions.fontSize);
+    textPreview.style.fontFamily = getTextPreviewFontFamily(normalizedOptions.fontFamily);
     textPreview.style.fontWeight = "700";
     textPreview.style.lineHeight = "1.1";
     textPreview.style.letterSpacing = "0.02em";
-    textPreview.style.color = "#ffffff";
-    textPreview.style.textShadow = "0 3px 10px rgba(0, 0, 0, 0.55)";
+    textPreview.style.color = getTextPreviewColor(normalizedOptions.fontColor);
+    textPreview.style.textShadow = getTextPreviewShadow(normalizedOptions.fontColor);
     textPreview.style.whiteSpace = "nowrap";
     textPreview.style.wordBreak = "normal";
     textPreview.style.pointerEvents = "none";
@@ -913,8 +1004,8 @@
   }
 
 
-  function updateTextPreview(container, textValue) {
-    syncMainProductTextPreviewOverlay(textValue);
+  function updateTextPreview(container, textValue, options) {
+    syncMainProductTextPreviewOverlay(textValue, options);
 
     var previewCanvas = container.querySelector("[data-onpri-preview-canvas]");
 
@@ -1161,12 +1252,14 @@
     return true;
   }
 
-  function applyTextSelectionToProductForm(container, config, setting, textValue) {
+  function applyTextSelectionToProductForm(container, config, setting, textValue, options) {
     var forms = findProductForms(container);
 
     if (!forms.length) {
       return false;
     }
+
+    var normalizedOptions = normalizeTextCustomizerOptions(options);
 
     forms.forEach(function (form) {
       clearCustomizerProperties(form);
@@ -1178,6 +1271,11 @@
       setHiddenInput(form, "properties[ONPRI設定ID]", setting.id);
       setHiddenInput(form, "properties[ONPRIカスタマイズ種別]", "名入れ");
       setHiddenInput(form, "properties[ONPRI名入れテキスト]", textValue);
+      setHiddenInput(form, "properties[ONPRI名入れ入力エリア]", normalizedOptions.area);
+      setHiddenInput(form, "properties[ONPRI名入れ位置]", normalizedOptions.position);
+      setHiddenInput(form, "properties[ONPRI名入れフォントサイズ]", normalizedOptions.fontSize);
+      setHiddenInput(form, "properties[ONPRI名入れフォントカラー]", normalizedOptions.fontColor);
+      setHiddenInput(form, "properties[ONPRI名入れフォント種類]", normalizedOptions.fontFamily);
     });
 
     window.__onpriCustomizerSelection = {
@@ -1188,6 +1286,7 @@
 
     return true;
   }
+
 
   function createCustomizerOption(container, config, setting, selectedOutput) {
     var imageName = setting.image && setting.image.name ? setting.image.name : "画像未設定";
@@ -1354,24 +1453,91 @@
     input.style.border = "1px solid #dddddd";
     input.style.borderRadius = "6px";
 
+    var controls = document.createElement("div");
+    controls.style.display = "grid";
+    controls.style.gridTemplateColumns = "1fr 1fr";
+    controls.style.gap = "10px";
+    controls.style.margin = "12px 0 0";
+
+    function createSelect(labelText, options, defaultValue) {
+      var field = document.createElement("label");
+      field.style.display = "block";
+      field.style.fontSize = "13px";
+      field.style.fontWeight = "600";
+
+      var caption = document.createElement("span");
+      caption.textContent = labelText;
+      caption.style.display = "block";
+      caption.style.margin = "0 0 4px";
+
+      var select = document.createElement("select");
+      select.style.width = "100%";
+      select.style.boxSizing = "border-box";
+      select.style.padding = "8px";
+      select.style.border = "1px solid #dddddd";
+      select.style.borderRadius = "6px";
+      select.style.background = "#ffffff";
+
+      options.forEach(function (optionValue) {
+        var option = document.createElement("option");
+        option.value = optionValue;
+        option.textContent = optionValue;
+        select.appendChild(option);
+      });
+
+      select.value = defaultValue;
+
+      field.appendChild(caption);
+      field.appendChild(select);
+
+      return {
+        field: field,
+        select: select,
+      };
+    }
+
+    var defaults = getDefaultTextCustomizerOptions();
+    var areaSelect = createSelect("入力エリア", ["前面", "背面"], defaults.area);
+    var positionSelect = createSelect("場所", ["中央", "上", "下", "左胸"], defaults.position);
+    var fontSizeSelect = createSelect("フォントサイズ", ["小", "中", "大"], defaults.fontSize);
+    var fontColorSelect = createSelect("フォントカラー", ["白", "黒", "赤", "青"], defaults.fontColor);
+    var fontFamilySelect = createSelect("フォント種類", ["ゴシック", "明朝", "丸ゴシック"], defaults.fontFamily);
+
+    controls.appendChild(areaSelect.field);
+    controls.appendChild(positionSelect.field);
+    controls.appendChild(fontSizeSelect.field);
+    controls.appendChild(fontColorSelect.field);
+    controls.appendChild(fontFamilySelect.field);
+
     var note = document.createElement("p");
-    note.textContent = "入力した文字はカート・注文情報に保存されます。";
+    note.textContent = "入力した文字と選択内容はカート・注文情報に保存されます。";
     note.style.margin = "8px 0 0";
     note.style.fontSize = "13px";
     note.style.color = "#666666";
 
     var output = document.createElement("p");
-    updateTextPreview(container, "");
+    updateTextPreview(container, "", defaults);
 
     output.textContent = "名入れ: 未入力";
     output.style.margin = "8px 0 0";
     output.style.fontWeight = "600";
 
-    input.addEventListener("input", function () {
-      var textValue = input.value.trim();
-      var applied = applyTextSelectionToProductForm(container, config, setting, textValue);
+    function getCurrentOptions() {
+      return {
+        area: areaSelect.select.value,
+        position: positionSelect.select.value,
+        fontSize: fontSizeSelect.select.value,
+        fontColor: fontColorSelect.select.value,
+        fontFamily: fontFamilySelect.select.value,
+      };
+    }
 
-      updateTextPreview(container, textValue);
+    function refreshTextCustomization() {
+      var textValue = input.value.trim();
+      var options = getCurrentOptions();
+      var applied = applyTextSelectionToProductForm(container, config, setting, textValue, options);
+
+      updateTextPreview(container, textValue, options);
 
       output.textContent = textValue
         ? "名入れ: " + textValue
@@ -1380,15 +1546,24 @@
       if (!applied) {
         output.textContent += "（商品フォーム未検出）";
       }
-    });
+    }
+
+    input.addEventListener("input", refreshTextCustomization);
+    areaSelect.select.addEventListener("change", refreshTextCustomization);
+    positionSelect.select.addEventListener("change", refreshTextCustomization);
+    fontSizeSelect.select.addEventListener("change", refreshTextCustomization);
+    fontColorSelect.select.addEventListener("change", refreshTextCustomization);
+    fontFamilySelect.select.addEventListener("change", refreshTextCustomization);
 
     wrapper.appendChild(label);
     wrapper.appendChild(input);
+    wrapper.appendChild(controls);
     wrapper.appendChild(note);
     wrapper.appendChild(output);
 
     return wrapper;
   }
+
 
   function createCustomizerOptions(container, config, settings) {
     var wrapper = document.createElement("div");
