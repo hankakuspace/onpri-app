@@ -2291,7 +2291,41 @@ export default function CustomizerPage() {
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 0 rgba(0, 0, 0, 0.12) !important;
           }
 
-        `}
+
+          /* ONPRI actual top tab button style */
+          .onpri-customizer-full-page .onpri-customizer-menu {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            margin: 0 0 14px !important;
+            padding: 0 !important;
+          }
+
+          .onpri-customizer-full-page .onpri-customizer-menu button {
+            min-height: 26px !important;
+            padding: 0 12px !important;
+            border: 1px solid #c9cccf !important;
+            border-radius: 999px !important;
+            background: #ffffff !important;
+            color: #202223 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            line-height: 24px !important;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+            cursor: pointer !important;
+          }
+
+          .onpri-customizer-full-page .onpri-customizer-menu button:hover {
+            background: #f6f6f7 !important;
+          }
+
+          .onpri-customizer-full-page .onpri-customizer-menu button.is-active {
+            border-color: #202223 !important;
+            background: #202223 !important;
+            color: #ffffff !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 0 rgba(0, 0, 0, 0.12) !important;
+          }
+\n        `}
       </style>
       <div className="onpri-customizer-menu">
         {menuItems.map((item) => (
