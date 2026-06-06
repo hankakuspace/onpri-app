@@ -528,6 +528,110 @@
   }
 
 
+  function loadImageForCanvas(src) {
+    return new Promise(function (resolve, reject) {
+      var image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = function () {
+        resolve(image);
+      };
+      image.onerror = function () {
+        reject(new Error("画像を読み込めませんでした: " + src));
+      };
+      image.src = src;
+    });
+  }
+
+  function drawContainImage(context, image, canvasWidth, canvasHeight) {
+    var imageRatio = image.naturalWidth / image.naturalHeight;
+    var canvasRatio = canvasWidth / canvasHeight;
+
+    var width = canvasWidth;
+    var height = canvasHeight;
+    var x = 0;
+    var y = 0;
+
+    if (imageRatio > canvasRatio) {
+      height = canvasWidth / imageRatio;
+      y = (canvasHeight - height) / 2;
+    } else {
+      width = canvasHeight * imageRatio;
+      x = (canvasWidth - width) / 2;
+    }
+
+    context.drawImage(image, x, y, width, height);
+
+    return {
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+    };
+  }
+
+  function generatePreviewDataUrl(container, setting) {
+    var productImageUrl = getProductImageUrl();
+    var logoImageUrl = setting && setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
+
+    if (!productImageUrl || !logoImageUrl) {
+      return Promise.resolve("");
+    }
+
+    var state = clampCustomizerState(getCustomizerState(container));
+    var canvas = document.createElement("canvas");
+    var canvasWidth = 1200;
+    var canvasHeight = 900;
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    var context = canvas.getContext("2d");
+
+    if (!context) {
+      return Promise.resolve("");
+    }
+
+    return Promise.all([
+      loadImageForCanvas(productImageUrl),
+      loadImageForCanvas(logoImageUrl),
+    ]).then(function (images) {
+      var productImage = images[0];
+      var logoImage = images[1];
+
+      context.clearRect(0, 0, canvasWidth, canvasHeight);
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      var productArea = drawContainImage(context, productImage, canvasWidth, canvasHeight);
+
+      var logoBaseWidth = productArea.width * 0.32;
+      var logoWidth = logoBaseWidth * state.scale;
+      var logoHeight = logoWidth * (logoImage.naturalHeight / logoImage.naturalWidth);
+
+      var logoCenterX = productArea.x + productArea.width * (0.5 + state.positionX / 100);
+      var logoCenterY = productArea.y + productArea.height * (0.5 + state.positionY / 100);
+
+      context.drawImage(
+        logoImage,
+        logoCenterX - logoWidth / 2,
+        logoCenterY - logoHeight / 2,
+        logoWidth,
+        logoHeight
+      );
+
+      return canvas.toDataURL("image/png");
+    }).catch(function () {
+      return "";
+    });
+  }
+
+  function updateGeneratedPreviewData(container, setting) {
+    return generatePreviewDataUrl(container, setting).then(function (previewDataUrl) {
+      container.__onpriPreviewDataUrl = previewDataUrl || "";
+      return container.__onpriPreviewDataUrl;
+    });
+  }
+
   function applySelectionToProductForm(container, config, setting) {
     var forms = findProductForms(container);
 
@@ -553,6 +657,7 @@
       setHiddenInput(form, "properties[ONPRI位置X]", formatCustomizerNumber(state.positionX));
       setHiddenInput(form, "properties[ONPRI位置Y]", formatCustomizerNumber(state.positionY));
       setHiddenInput(form, "properties[ONPRI拡大率]", formatCustomizerNumber(state.scale));
+      setHiddenInput(form, "properties[ONPRIプレビュー画像データ]", container.__onpriPreviewDataUrl || "");
     });
 
     window.__onpriCustomizerSelection = {
@@ -624,6 +729,9 @@
       selectedOutput.setAttribute("data-selected-setting-id", setting.id);
 
       updatePreview(container, setting);
+      updateGeneratedPreviewData(container, setting).then(function () {
+        applySelectionToProductForm(container, config, setting);
+      });
     });
 
     textContent.appendChild(radio);
@@ -662,11 +770,13 @@
         clampCustomizerState(state);
 
         updatePreview(container, window.__onpriCustomizerSelection.setting);
-        applySelectionToProductForm(
-          window.__onpriCustomizerSelection.container,
-          window.__onpriCustomizerSelection.config,
-          window.__onpriCustomizerSelection.setting,
-        );
+        updateGeneratedPreviewData(container, window.__onpriCustomizerSelection.setting).then(function () {
+          applySelectionToProductForm(
+            window.__onpriCustomizerSelection.container,
+            window.__onpriCustomizerSelection.config,
+            window.__onpriCustomizerSelection.setting,
+          );
+        });
       });
 
       return button;
@@ -822,6 +932,11 @@
     if (!window.__onpriCustomizerSelection) {
       return;
     }
+
+    updateGeneratedPreviewData(
+      window.__onpriCustomizerSelection.container,
+      window.__onpriCustomizerSelection.setting,
+    );
 
     applySelectionToProductForm(
       window.__onpriCustomizerSelection.container,
