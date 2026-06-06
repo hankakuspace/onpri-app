@@ -381,6 +381,12 @@
         return;
       }
 
+      if (event.buttons === 0) {
+        dragging = false;
+        image.style.cursor = "move";
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
       updatePositionFromPointer(event.clientX, event.clientY);
@@ -442,6 +448,11 @@
           return;
         }
 
+        if (event.buttons === 0) {
+          resizing = false;
+          return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
         updateScaleFromPointer(event.clientX, event.clientY);
@@ -466,6 +477,16 @@
 
         resizing = false;
       });
+
+      resizeHandle.addEventListener("lostpointercapture", function () {
+        resizing = false;
+      });
+    });
+
+    window.addEventListener("pointerup", function () {
+      dragging = false;
+      resizing = false;
+      image.style.cursor = "move";
     });
   }
 
