@@ -1151,6 +1151,13 @@
 
   function createCustomizerOptions(container, config, settings) {
     var wrapper = document.createElement("div");
+    var registeredImageSettings = settings.filter(function (setting) {
+      return setting.inputType === "registered_image";
+    });
+
+    if (!registeredImageSettings.length) {
+      return wrapper;
+    }
 
     var heading = document.createElement("h4");
     heading.textContent = "登録済み画像を選択";
@@ -1162,7 +1169,7 @@
     selectedOutput.style.margin = "12px 0 0";
     selectedOutput.style.fontWeight = "600";
 
-    settings.forEach(function (setting) {
+    registeredImageSettings.forEach(function (setting) {
       wrapper.appendChild(createCustomizerOption(container, config, setting, selectedOutput));
     });
 
