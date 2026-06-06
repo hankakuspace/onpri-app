@@ -280,9 +280,29 @@ async function getOrderRows(request: Request): Promise<CsvRow[]> {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  const rows = await getOrderRows(request);
+  let rows: CsvRow[] = [];
+  let errorMessage: string | null = null;
+
+  try {
+    rows = await getOrderRows(request);
+  } catch (error) {
+    errorMessage =
+      error instanceof Error
+        ? error.message
+        : "注文情報の取得中に不明なエラーが発生しました。";
+  }
 
   if (url.searchParams.get("download") === "1") {
+    if (errorMessage) {
+      return new Response(errorMessage, {
+        status: 400,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
     const csv = createCsv(rows);
     const fileName = `onpri-orders-${new Date()
       .toISOString()
@@ -307,11 +327,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     rows,
     onpriRows,
+    errorMessage,
   };
 };
 
 export default function OrdersExportPage() {
-  const { rows, onpriRows } = useLoaderData<typeof loader>();
+  const { rows, onpriRows, errorMessage } = useLoaderData<typeof loader>();
 
   return (
     <s-page heading="ONPRI 注文CSV出力">
@@ -331,6 +352,20 @@ export default function OrdersExportPage() {
           </s-stack>
         </div>
       </s-section>
+
+      {errorMessage ? (
+        <s-section>
+          <div className="onpri-card">
+            <s-stack gap="base">
+              <s-heading>注文情報を取得できませんでした</s-heading>
+              <s-paragraph>
+                注文CSV出力にはShopifyアプリのread_orders権限が必要です。
+              </s-paragraph>
+              <s-paragraph>{errorMessage}</s-paragraph>
+            </s-stack>
+          </div>
+        </s-section>
+      ) : null}
 
       <s-section>
         <div className="onpri-card">
