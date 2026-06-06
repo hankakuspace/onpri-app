@@ -93,6 +93,7 @@
 
   function createCustomizerOption(container, config, setting, selectedOutput) {
     var imageName = setting.image && setting.image.name ? setting.image.name : "画像未設定";
+    var imageUrl = setting.image && setting.image.imageUrl ? setting.image.imageUrl : "";
     var optionId = "onpri-customizer-option-" + setting.id;
 
     var wrapper = document.createElement("label");
@@ -102,6 +103,27 @@
     wrapper.style.padding = "12px";
     wrapper.style.margin = "0 0 10px";
     wrapper.style.cursor = "pointer";
+
+    var content = document.createElement("div");
+    content.style.display = "flex";
+    content.style.gap = "12px";
+    content.style.alignItems = "center";
+
+    if (imageUrl) {
+      var thumbnail = document.createElement("img");
+      thumbnail.src = imageUrl;
+      thumbnail.alt = imageName;
+      thumbnail.loading = "lazy";
+      thumbnail.style.width = "56px";
+      thumbnail.style.height = "56px";
+      thumbnail.style.objectFit = "contain";
+      thumbnail.style.border = "1px solid #eeeeee";
+      thumbnail.style.background = "#ffffff";
+      content.appendChild(thumbnail);
+    }
+
+    var textContent = document.createElement("div");
+    textContent.style.flex = "1";
 
     var radio = document.createElement("input");
     radio.type = "radio";
@@ -129,9 +151,11 @@
       selectedOutput.setAttribute("data-selected-setting-id", setting.id);
     });
 
-    wrapper.appendChild(radio);
-    wrapper.appendChild(title);
-    wrapper.appendChild(detail);
+    textContent.appendChild(radio);
+    textContent.appendChild(title);
+    textContent.appendChild(detail);
+    content.appendChild(textContent);
+    wrapper.appendChild(content);
 
     return wrapper;
   }
