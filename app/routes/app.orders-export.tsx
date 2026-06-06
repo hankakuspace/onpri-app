@@ -1,6 +1,6 @@
 // app/routes/app.orders-export.tsx
 import type { LoaderFunctionArgs } from "react-router";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 
 type CustomAttribute = {
@@ -372,9 +372,9 @@ export default function OrdersExportPage() {
             <s-paragraph>
               取得対象は直近50件の注文です。ONPRI項目が入っている明細のみ、下部に確認用として表示しています。
             </s-paragraph>
-            <s-button href="/app/orders-export?download=1" variant="primary">
+            <a href="/app/orders-export?download=1" target="_blank" rel="noreferrer">
               CSVをダウンロード
-            </s-button>
+            </a>
           </s-stack>
         </div>
       </s-section>
@@ -432,13 +432,13 @@ export default function OrdersExportPage() {
                       <td>{row.onpriImageName}</td>
                       <td>
                         {row.onpriPreviewImageUrl ? (
-                          <Link
-                            to={row.onpriPreviewImageUrl}
+                          <a
+                            href={row.onpriPreviewImageUrl}
                             target="_blank"
                             rel="noreferrer"
                           >
                             画像を開く
-                          </Link>
+                          </a>
                         ) : (
                           ""
                         )}
