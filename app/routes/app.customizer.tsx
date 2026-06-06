@@ -253,12 +253,12 @@ export default function CustomizerPage() {
   const actionData = useActionData<typeof action>();
   const [activeSection, setActiveSection] = useState("shopify-products");
   const [selectedImageFileNames, setSelectedImageFileNames] = useState<string[]>([]);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingImageIds, setEditingImageIds] = useState<string[]>([]);
 
   const menuItems = [
     { id: "shopify-products", label: "Shopify商品設定" },
     { id: "create-image", label: "登録済み画像を追加" },
-    { id: "images", label: "登録済み画像・入力項目" },
-    { id: "settings", label: "商品別カスタマイズ設定" },
   ];
   const productById = new Map(products.map((product) => [product.id, product]));
   const imageById = new Map(images.map((image) => [image.id, image]));
@@ -274,6 +274,24 @@ export default function CustomizerPage() {
           setting.inputType === "registered_image",
       )
       .map((setting) => setting.imageId);
+  }
+
+  function openProductImageEditor(productId: string, assignedImageIds: string[]) {
+    setEditingProductId(productId);
+    setEditingImageIds(assignedImageIds);
+  }
+
+  function closeProductImageEditor() {
+    setEditingProductId(null);
+    setEditingImageIds([]);
+  }
+
+  function toggleEditingImageId(imageId: string) {
+    setEditingImageIds((currentImageIds) =>
+      currentImageIds.includes(imageId)
+        ? currentImageIds.filter((currentImageId) => currentImageId !== imageId)
+        : [...currentImageIds, imageId],
+    );
   }
 
   function updateSelectedImageFileNames(files: FileList | null) {
@@ -430,6 +448,130 @@ export default function CustomizerPage() {
             object-fit: contain;
             background: #fff;
           }
+
+          .onpri-assigned-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+          }
+
+          .onpri-assigned-image {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+          }
+
+          .onpri-product-image {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f6f6f6;
+          }
+
+          .onpri-edit-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.5);
+          }
+
+          .onpri-edit-modal {
+            width: min(960px, 92vw);
+            max-height: 88vh;
+            overflow: auto;
+            padding: 24px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+          }
+
+          .onpri-edit-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+          }
+
+          .onpri-edit-modal-close {
+            border: 0;
+            background: #111;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+          }
+
+          .onpri-edit-modal-section {
+            margin-top: 20px;
+          }
+
+          .onpri-library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+          }
+
+          .onpri-library-card {
+            display: grid;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+          }
+
+          .onpri-library-card.is-selected {
+            border-color: #111;
+            background: #f1f1f1;
+          }
+
+          .onpri-library-card img {
+            width: 100%;
+            height: 96px;
+            object-fit: contain;
+            background: #fff;
+          }
+
+          .onpri-library-card button {
+            width: 100%;
+          }
+
+          .onpri-assigned-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+          }
+
+          .onpri-assigned-image {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+          }
+
+          .onpri-product-setting-details {
+            margin-top: 8px;
+          }
+
+          .onpri-product-setting-details summary {
+            cursor: pointer;
+            font-weight: 600;
+          }
         `}
       </style>
       <div className="onpri-customizer-menu">
@@ -454,66 +596,209 @@ export default function CustomizerPage() {
           {shopifyProducts.length === 0 ? (
             <s-paragraph>Shopify商品が見つかりませんでした。</s-paragraph>
           ) : (
-            <div>
-              {shopifyProducts.map((product) => {
-                const fallbackCustomizerProductId = `product-${product.handle}`;
-                const customizerProductId =
-                  product.customizerProductId || fallbackCustomizerProductId;
-                const assignedImageIds = getAssignedImageIds(customizerProductId);
+            <div className="onpri-admin-table-wrap">
+              <table className="onpri-admin-table">
+                <thead>
+                  <tr>
+                    <th>ブランド</th>
+                    <th>商品名</th>
+                    <th>商品画像</th>
+                    <th>紐づいている画像</th>
+                    <th>編集</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shopifyProducts.map((product) => {
+                    const fallbackCustomizerProductId = `product-${product.handle}`;
+                    const customizerProductId =
+                      product.customizerProductId || fallbackCustomizerProductId;
+                    const assignedImageIds = getAssignedImageIds(customizerProductId);
+                    const assignedImages = registeredImages.filter((image) =>
+                      assignedImageIds.includes(image.id),
+                    );
+                    const isEditing = editingProductId === product.id;
 
-                return (
-                  <Form
-                    key={product.id}
-                    method="post"
-                    className="onpri-product-card"
-                  >
-                    <input type="hidden" name="intent" value="save-shopify-product-images" />
-                    <input type="hidden" name="productId" value={product.id} />
-                    <input type="hidden" name="productTitle" value={product.title} />
-                    <input type="hidden" name="productHandle" value={product.handle} />
-                    <input type="hidden" name="productVendor" value={product.vendor} />
-                    <input
-                      type="hidden"
-                      name="customizerProductId"
-                      value={customizerProductId}
-                    />
+                    return (
+                      <tr key={product.id}>
+                        <td>{product.vendor || "未設定"}</td>
+                        <td>{product.title}</td>
+                        <td>
+                          {product.featuredImageUrl ? (
+                            <img
+                              className="onpri-product-image"
+                              src={product.featuredImageUrl}
+                              alt={`${product.title} 商品画像`}
+                            />
+                          ) : (
+                            "未設定"
+                          )}
+                        </td>
+                        <td>
+                          {assignedImages.length > 0 ? (
+                            <div className="onpri-assigned-images">
+                              {assignedImages.map((image) => (
+                                <img
+                                  key={`${product.id}-assigned-${image.id}`}
+                                  className="onpri-assigned-image"
+                                  src={image.imageUrl}
+                                  alt={`${image.name} サムネイル`}
+                                  title={image.name}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            "未設定"
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openProductImageEditor(product.id, assignedImageIds)
+                            }
+                          >
+                            編集
+                          </button>
 
-                    <div className="onpri-product-card-header">
-                      {product.featuredImageUrl ? (
-                        <img
-                          className="onpri-product-card-image"
-                          src={product.featuredImageUrl}
-                          alt={`${product.title} 商品画像`}
-                        />
-                      ) : (
-                        <div className="onpri-product-card-image" />
-                      )}
+                          {isEditing ? (
+                            <div
+                              className="onpri-edit-modal-backdrop"
+                              onClick={(event) => {
+                                if (event.target === event.currentTarget) {
+                                  closeProductImageEditor();
+                                }
+                              }}
+                            >
+                              <Form method="post" className="onpri-edit-modal">
+                                <input
+                                  type="hidden"
+                                  name="intent"
+                                  value="save-shopify-product-images"
+                                />
+                                <input type="hidden" name="productId" value={product.id} />
+                                <input
+                                  type="hidden"
+                                  name="productTitle"
+                                  value={product.title}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="productHandle"
+                                  value={product.handle}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="productVendor"
+                                  value={product.vendor}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="customizerProductId"
+                                  value={customizerProductId}
+                                />
 
-                      <div>
-                        <strong>{product.title}</strong>
-                        <div>商品設定ID：{customizerProductId}</div>
-                      </div>
-                    </div>
+                                {editingImageIds.map((imageId) => (
+                                  <input
+                                    key={`${product.id}-selected-${imageId}`}
+                                    type="hidden"
+                                    name="imageIds"
+                                    value={imageId}
+                                  />
+                                ))}
 
-                    <div className="onpri-image-check-grid">
-                      {registeredImages.map((image) => (
-                        <label key={`${product.id}-${image.id}`} className="onpri-image-check">
-                          <input
-                            type="checkbox"
-                            name="imageIds"
-                            value={image.id}
-                            defaultChecked={assignedImageIds.includes(image.id)}
-                          />
-                          <img src={image.imageUrl} alt={`${image.name} サムネイル`} />
-                          <span>{image.name}</span>
-                        </label>
-                      ))}
-                    </div>
+                                <div className="onpri-edit-modal-header">
+                                  <div>
+                                    <h3 style={{ margin: 0 }}>{product.title}</h3>
+                                    <div>ブランド：{product.vendor || "未設定"}</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="onpri-edit-modal-close"
+                                    onClick={closeProductImageEditor}
+                                    aria-label="閉じる"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
 
-                    <button type="submit">この商品に画像を保存</button>
-                  </Form>
-                );
-              })}
+                                <div className="onpri-edit-modal-section">
+                                  <h4>現在紐づいている画像</h4>
+                                  {editingImageIds.length > 0 ? (
+                                    <div className="onpri-assigned-images">
+                                      {registeredImages
+                                        .filter((image) =>
+                                          editingImageIds.includes(image.id),
+                                        )
+                                        .map((image) => (
+                                          <div
+                                            key={`${product.id}-modal-assigned-${image.id}`}
+                                            className="onpri-library-card is-selected"
+                                          >
+                                            <img
+                                              src={image.imageUrl}
+                                              alt={`${image.name} サムネイル`}
+                                            />
+                                            <span>{image.name}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleEditingImageId(image.id)}
+                                            >
+                                              解除
+                                            </button>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ) : (
+                                    <p className="onpri-upload-note">
+                                      まだ画像は紐づいていません。
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="onpri-edit-modal-section">
+                                  <h4>画像ライブラリ</h4>
+                                  <div className="onpri-library-grid">
+                                    {registeredImages.map((image) => {
+                                      const isSelected = editingImageIds.includes(image.id);
+
+                                      return (
+                                        <div
+                                          key={`${product.id}-library-${image.id}`}
+                                          className={
+                                            isSelected
+                                              ? "onpri-library-card is-selected"
+                                              : "onpri-library-card"
+                                          }
+                                        >
+                                          <img
+                                            src={image.imageUrl}
+                                            alt={`${image.name} サムネイル`}
+                                          />
+                                          <span>{image.name}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleEditingImageId(image.id)}
+                                          >
+                                            {isSelected ? "解除" : "追加"}
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="onpri-edit-modal-section">
+                                  <button type="submit">保存</button>
+                                </div>
+                              </Form>
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </s-section>
