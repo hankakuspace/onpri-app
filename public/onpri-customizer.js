@@ -1236,10 +1236,6 @@
       existingOverlay.remove();
     }
 
-    if (!textValue) {
-      return;
-    }
-
     disableMainProductImageZoomForTextPreview(overlayRoot);
 
     var normalizedOptions = normalizeTextCustomizerOptions(options);
@@ -1275,6 +1271,12 @@
     printAreaFrame.style.background = "rgba(0, 163, 255, 0.06)";
     printAreaFrame.style.pointerEvents = "none";
     printAreaFrame.style.zIndex = "3";
+
+    if (!textValue) {
+      overlay.appendChild(printAreaFrame);
+      overlayRoot.appendChild(overlay);
+      return;
+    }
 
     var textBox = document.createElement("div");
     textBox.setAttribute("data-onpri-main-preview-text-box", "true");
