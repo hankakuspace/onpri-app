@@ -858,7 +858,7 @@
 
   function getDefaultTextCustomizerOptions() {
     return {
-      area: "前面",
+      area: "前面中央",
       position: "中央",
       fontSize: "中",
       fontColor: "白",
@@ -879,32 +879,67 @@
     };
   }
 
-  function getTextPreviewPositionStyles(position) {
+  function getTextPreviewAreaConfig(area) {
+    if (area === "左胸") {
+      return {
+        left: "33%",
+        top: "28%",
+        width: "22%",
+        height: "14%",
+      };
+    }
+
+    if (area === "背面中央") {
+      return {
+        left: "34%",
+        top: "24%",
+        width: "38%",
+        height: "48%",
+      };
+    }
+
+    return {
+      left: "34%",
+      top: "24%",
+      width: "38%",
+      height: "48%",
+    };
+  }
+
+  function getTextPreviewContentLayout(position) {
     if (position === "上") {
-      return { left: "50%", top: "40%" };
+      return {
+        justifyContent: "flex-start",
+        paddingTop: "10%",
+        paddingBottom: "6%",
+      };
     }
 
     if (position === "下") {
-      return { left: "50%", top: "64%" };
+      return {
+        justifyContent: "flex-end",
+        paddingTop: "6%",
+        paddingBottom: "10%",
+      };
     }
 
-    if (position === "左胸") {
-      return { left: "42%", top: "42%" };
-    }
-
-    return { left: "50%", top: "52%" };
+    return {
+      justifyContent: "center",
+      paddingTop: "8%",
+      paddingBottom: "8%",
+    };
   }
 
   function getTextPreviewFontSize(fontSize) {
     if (fontSize === "小") {
-      return "clamp(22px, 3.2vw, 48px)";
+      return "clamp(18px, 2.2vw, 32px)";
     }
 
     if (fontSize === "大") {
-      return "clamp(34px, 5.2vw, 84px)";
+      return "clamp(28px, 3.8vw, 56px)";
     }
 
-    return "clamp(28px, 4.5vw, 72px)";
+    return "clamp(22px, 3vw, 42px)";
   }
 
   function getTextPreviewColor(fontColor) {
@@ -958,12 +993,9 @@
       existingOverlay.remove();
     }
 
-    if (!textValue) {
-      return;
-    }
-
     var normalizedOptions = normalizeTextCustomizerOptions(options);
-    var positionStyles = getTextPreviewPositionStyles(normalizedOptions.position);
+    var areaConfig = getTextPreviewAreaConfig(normalizedOptions.area);
+    var layout = getTextPreviewContentLayout(normalizedOptions.position);
     var computedStyle = window.getComputedStyle(overlayRoot);
 
     if (computedStyle.position === "static") {
@@ -979,27 +1011,56 @@
 
     positionOverlayOnImageArea(overlay, mainImage, overlayRoot);
 
-    var textPreview = document.createElement("div");
-    textPreview.setAttribute("data-onpri-main-preview-text", "true");
-    textPreview.textContent = textValue;
-    textPreview.style.position = "absolute";
-    textPreview.style.left = positionStyles.left;
-    textPreview.style.top = positionStyles.top;
-    textPreview.style.transform = "translate(-50%, -50%)";
-    textPreview.style.maxWidth = "72%";
-    textPreview.style.textAlign = "center";
-    textPreview.style.fontSize = getTextPreviewFontSize(normalizedOptions.fontSize);
-    textPreview.style.fontFamily = getTextPreviewFontFamily(normalizedOptions.fontFamily);
-    textPreview.style.fontWeight = "700";
-    textPreview.style.lineHeight = "1.1";
-    textPreview.style.letterSpacing = "0.02em";
-    textPreview.style.color = getTextPreviewColor(normalizedOptions.fontColor);
-    textPreview.style.textShadow = getTextPreviewShadow(normalizedOptions.fontColor);
-    textPreview.style.whiteSpace = "nowrap";
-    textPreview.style.wordBreak = "normal";
-    textPreview.style.pointerEvents = "none";
+    var areaFrame = document.createElement("div");
+    areaFrame.setAttribute("data-onpri-main-text-preview-area", "true");
+    areaFrame.style.position = "absolute";
+    areaFrame.style.left = areaConfig.left;
+    areaFrame.style.top = areaConfig.top;
+    areaFrame.style.width = areaConfig.width;
+    areaFrame.style.height = areaConfig.height;
+    areaFrame.style.boxSizing = "border-box";
+    areaFrame.style.border = "1.5px solid rgba(76, 213, 255, 0.65)";
+    areaFrame.style.background = "rgba(255, 255, 255, 0.02)";
 
-    overlay.appendChild(textPreview);
+    var contentBox = document.createElement("div");
+    contentBox.setAttribute("data-onpri-main-text-preview-content-box", "true");
+    contentBox.style.position = "absolute";
+    contentBox.style.inset = "0";
+    contentBox.style.display = "flex";
+    contentBox.style.flexDirection = "column";
+    contentBox.style.justifyContent = layout.justifyContent;
+    contentBox.style.alignItems = "center";
+    contentBox.style.paddingLeft = "8%";
+    contentBox.style.paddingRight = "8%";
+    contentBox.style.paddingTop = layout.paddingTop;
+    contentBox.style.paddingBottom = layout.paddingBottom;
+    contentBox.style.boxSizing = "border-box";
+
+    if (textValue) {
+      var textPreview = document.createElement("div");
+      textPreview.setAttribute("data-onpri-main-preview-text", "true");
+      textPreview.textContent = textValue;
+      textPreview.style.display = "block";
+      textPreview.style.width = "100%";
+      textPreview.style.maxWidth = "100%";
+      textPreview.style.textAlign = "center";
+      textPreview.style.fontSize = getTextPreviewFontSize(normalizedOptions.fontSize);
+      textPreview.style.fontFamily = getTextPreviewFontFamily(normalizedOptions.fontFamily);
+      textPreview.style.fontWeight = "700";
+      textPreview.style.lineHeight = "1.15";
+      textPreview.style.letterSpacing = "0.02em";
+      textPreview.style.color = getTextPreviewColor(normalizedOptions.fontColor);
+      textPreview.style.textShadow = getTextPreviewShadow(normalizedOptions.fontColor);
+      textPreview.style.whiteSpace = "normal";
+      textPreview.style.wordBreak = "break-word";
+      textPreview.style.overflowWrap = "anywhere";
+      textPreview.style.pointerEvents = "none";
+
+      contentBox.appendChild(textPreview);
+    }
+
+    areaFrame.appendChild(contentBox);
+    overlay.appendChild(areaFrame);
     overlayRoot.appendChild(overlay);
   }
 
@@ -1497,8 +1558,8 @@
     }
 
     var defaults = getDefaultTextCustomizerOptions();
-    var areaSelect = createSelect("入力エリア", ["前面", "背面"], defaults.area);
-    var positionSelect = createSelect("場所", ["中央", "上", "下", "左胸"], defaults.position);
+    var areaSelect = createSelect("入力エリア", ["前面中央", "左胸", "背面中央"], defaults.area);
+    var positionSelect = createSelect("場所", ["上", "中央", "下"], defaults.position);
     var fontSizeSelect = createSelect("フォントサイズ", ["小", "中", "大"], defaults.fontSize);
     var fontColorSelect = createSelect("フォントカラー", ["白", "黒", "赤", "青"], defaults.fontColor);
     var fontFamilySelect = createSelect("フォント種類", ["ゴシック", "明朝", "丸ゴシック"], defaults.fontFamily);
