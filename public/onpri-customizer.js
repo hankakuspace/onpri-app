@@ -232,14 +232,25 @@
       mainPreviewImage.style.transform = transform;
       mainPreviewImage.style.transformOrigin = "center center";
     }
+
+    var resizeHandle = document.querySelector("[data-onpri-main-resize-handle='true']");
+    if (resizeHandle) {
+      resizeHandle.style.left = left;
+      resizeHandle.style.top = top;
+      resizeHandle.style.transform =
+        "translate(calc(-50% + 58px * " + state.scale + "), calc(-50% + 26px * " + state.scale + "))";
+      resizeHandle.style.transformOrigin = "center center";
+    }
   }
 
-  function makeMainPreviewImageDraggable(container, image) {
+  function makeMainPreviewImageDraggable(container, image, resizeHandle) {
     var dragging = false;
+    var resizing = false;
     var startX = 0;
     var startY = 0;
     var startPositionX = 0;
     var startPositionY = 0;
+    var startScale = 1;
 
     image.style.pointerEvents = "auto";
     image.style.cursor = "grab";
@@ -254,7 +265,19 @@
       event.stopPropagation();
     }, true);
 
-    function updateFromPointer(clientX, clientY) {
+    function applyStateUpdate() {
+      clampCustomizerState(getCustomizerState(container));
+      applyPreviewTransforms(container);
+      updateGeneratedPreviewData(container, window.__onpriCustomizerSelection.setting).then(function () {
+        applySelectionToProductForm(
+          window.__onpriCustomizerSelection.container,
+          window.__onpriCustomizerSelection.config,
+          window.__onpriCustomizerSelection.setting,
+        );
+      });
+    }
+
+    function updatePositionFromPointer(clientX, clientY) {
       var state = clampCustomizerState(getCustomizerState(container));
       var deltaX = clientX - startX;
       var deltaY = clientY - startY;
@@ -268,13 +291,18 @@
       state.positionX = startPositionX + (deltaX / rect.width) * 100;
       state.positionY = startPositionY + (deltaY / rect.height) * 100;
 
-      clampCustomizerState(state);
-      applyPreviewTransforms(container);
-      applySelectionToProductForm(
-        window.__onpriCustomizerSelection.container,
-        window.__onpriCustomizerSelection.config,
-        window.__onpriCustomizerSelection.setting,
-      );
+      applyStateUpdate();
+    }
+
+    function updateScaleFromPointer(clientX, clientY) {
+      var state = clampCustomizerState(getCustomizerState(container));
+      var deltaX = clientX - startX;
+      var deltaY = clientY - startY;
+      var delta = Math.max(deltaX, deltaY);
+
+      state.scale = startScale + delta / 160;
+
+      applyStateUpdate();
     }
 
     image.addEventListener("pointerdown", function (event) {
@@ -304,7 +332,7 @@
 
       event.preventDefault();
       event.stopPropagation();
-      updateFromPointer(event.clientX, event.clientY);
+      updatePositionFromPointer(event.clientX, event.clientY);
     });
 
     image.addEventListener("pointerup", function (event) {
@@ -328,6 +356,65 @@
       dragging = false;
       image.style.cursor = "grab";
     });
+
+    if (resizeHandle) {
+      resizeHandle.style.pointerEvents = "auto";
+      resizeHandle.style.cursor = "nwse-resize";
+      resizeHandle.style.touchAction = "none";
+
+      resizeHandle.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+
+      resizeHandle.addEventListener("pointerdown", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!window.__onpriCustomizerSelection) {
+          return;
+        }
+
+        var state = clampCustomizerState(getCustomizerState(container));
+
+        resizing = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        startScale = state.scale;
+
+        resizeHandle.setPointerCapture(event.pointerId);
+      });
+
+      resizeHandle.addEventListener("pointermove", function (event) {
+        if (!resizing) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        updateScaleFromPointer(event.clientX, event.clientY);
+      });
+
+      resizeHandle.addEventListener("pointerup", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        resizing = false;
+
+        try {
+          resizeHandle.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // pointer capture が解除済みの場合は何もしない。
+        }
+      });
+
+      resizeHandle.addEventListener("pointercancel", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        resizing = false;
+      });
+    }
   }
 
   function syncMainProductPreviewOverlay(container, setting) {
@@ -372,7 +459,14 @@
     }, true);
 
     overlay.addEventListener("pointerdown", function (event) {
-      if (event.target && event.target.closest && event.target.closest("[data-onpri-main-preview-image='true']")) {
+      if (
+        event.target &&
+        event.target.closest &&
+        (
+          event.target.closest("[data-onpri-main-preview-image='true']") ||
+          event.target.closest("[data-onpri-main-resize-handle='true']")
+        )
+      ) {
         return;
       }
 
@@ -390,8 +484,23 @@
     image.style.maxHeight = "22%";
     image.style.objectFit = "contain";
 
-    makeMainPreviewImageDraggable(container, image);
+    var resizeHandle = document.createElement("button");
+    resizeHandle.type = "button";
+    resizeHandle.setAttribute("data-onpri-main-resize-handle", "true");
+    resizeHandle.setAttribute("aria-label", "ロゴサイズを変更");
+    resizeHandle.style.position = "absolute";
+    resizeHandle.style.width = "18px";
+    resizeHandle.style.height = "18px";
+    resizeHandle.style.border = "2px solid #111111";
+    resizeHandle.style.background = "#ffffff";
+    resizeHandle.style.borderRadius = "50%";
+    resizeHandle.style.padding = "0";
+    resizeHandle.style.zIndex = "5";
+    resizeHandle.style.boxShadow = "0 1px 4px rgba(0, 0, 0, 0.25)";
+
+    makeMainPreviewImageDraggable(container, image, resizeHandle);
     overlay.appendChild(image);
+    overlay.appendChild(resizeHandle);
     overlayRoot.appendChild(overlay);
     applyPreviewTransforms(container);
   }
