@@ -2030,6 +2030,24 @@
     fontColorSelect.select.addEventListener("change", refreshTextCustomization);
     fontFamilySelect.select.addEventListener("change", refreshTextCustomization);
 
+    findProductForms(container).forEach(function (form) {
+      if (form.__onpriTextSubmitRefreshInstalled) {
+        return;
+      }
+
+      form.__onpriTextSubmitRefreshInstalled = true;
+
+      form.addEventListener("submit", function () {
+        applyTextSelectionToProductForm(
+          container,
+          config,
+          setting,
+          getCurrentTextValue(),
+          getCurrentOptions()
+        );
+      }, true);
+    });
+
     wrapper.appendChild(label);
     wrapper.appendChild(input);
     wrapper.appendChild(controls);
