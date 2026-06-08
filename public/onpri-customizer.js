@@ -127,6 +127,44 @@
 
   installOnpriCartAddFetchPatch();
 
+  function installOnpriCartAddXhrPatch() {
+    if (window.__onpriCartAddXhrPatchInstalled || !window.XMLHttpRequest) {
+      return;
+    }
+
+    window.__onpriCartAddXhrPatchInstalled = true;
+
+    var originalOpen = window.XMLHttpRequest.prototype.open;
+    var originalSend = window.XMLHttpRequest.prototype.send;
+
+    window.XMLHttpRequest.prototype.open = function (method, url) {
+      this.__onpriCartAddUrl = url || "";
+      this.__onpriCartAddMethod = method || "";
+      return originalOpen.apply(this, arguments);
+    };
+
+    window.XMLHttpRequest.prototype.send = function (body) {
+      try {
+        if (
+          this.__onpriCartAddUrl &&
+          String(this.__onpriCartAddUrl).indexOf("/cart/add") !== -1 &&
+          window.__onpriLatestTextCartProperties
+        ) {
+          body = setOnpriPropertiesToBody(
+            body,
+            window.__onpriLatestTextCartProperties
+          );
+        }
+      } catch (error) {
+        // 送信処理自体は止めない。
+      }
+
+      return originalSend.call(this, body);
+    };
+  }
+
+  installOnpriCartAddXhrPatch();
+
   function clearCustomizerProperties(form) {
     var inputs = form.querySelectorAll("[data-onpri-customizer-property='true']");
 
