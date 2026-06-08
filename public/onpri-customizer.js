@@ -2197,6 +2197,97 @@
       }, true);
     }
 
+    function getTextCartPayload(form) {
+      var variantInput = form.querySelector("input[name='id']");
+      var quantityInput = form.querySelector("input[name='quantity']");
+      var variantId = variantInput ? variantInput.value : "";
+      var quantity = quantityInput ? Number(quantityInput.value || 1) : 1;
+
+      if (!variantId) {
+        return null;
+      }
+
+      refreshTextPropertiesBeforeCartAdd();
+
+      return {
+        id: Number(variantId),
+        quantity: quantity || 1,
+        properties: Object.assign({}, window.__onpriLatestTextCartProperties || {}),
+      };
+    }
+
+    function submitTextCustomizationCartAdd(form) {
+      var payload = getTextCartPayload(form);
+
+      if (!payload || !payload.id || !payload.properties || !payload.properties["ONPRI名入れテキスト"]) {
+        return false;
+      }
+
+      fetch("/cart/add.js", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("ONPRI名入れ商品のカート追加に失敗しました。");
+          }
+
+          return response.json();
+        })
+        .then(function () {
+          window.location.href = "/cart";
+        })
+        .catch(function (error) {
+          console.error("ONPRI text cart add failed:", error);
+          form.submit();
+        });
+
+      return true;
+    }
+
+    findProductForms(container).forEach(function (form) {
+      if (form.__onpriTextDirectCartAddInstalled) {
+        return;
+      }
+
+      form.__onpriTextDirectCartAddInstalled = true;
+
+      form.addEventListener("submit", function (event) {
+        if (submitTextCustomizationCartAdd(form)) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (event.stopImmediatePropagation) {
+            event.stopImmediatePropagation();
+          }
+        }
+      }, true);
+
+      form.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (button) {
+        button.addEventListener("click", function (event) {
+          refreshTextPropertiesBeforeCartAdd();
+
+          if (!window.__onpriLatestTextCartProperties || !window.__onpriLatestTextCartProperties["ONPRI名入れテキスト"]) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (event.stopImmediatePropagation) {
+            event.stopImmediatePropagation();
+          }
+
+          submitTextCustomizationCartAdd(form);
+        }, true);
+      });
+    });
+
     wrapper.appendChild(label);
     wrapper.appendChild(input);
     wrapper.appendChild(controls);
