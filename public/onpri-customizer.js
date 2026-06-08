@@ -2026,6 +2026,28 @@
       }
     }
 
+    function setTextPropertiesToFormData(formData) {
+      if (!formData || !formData.set) {
+        return;
+      }
+
+      var normalizedOptions = normalizeTextCustomizerOptions(getCurrentOptions());
+      var state = clampTextCustomizerState(getTextCustomizerState(container));
+
+      formData.set("properties[ONPRI商品設定ID]", config.product.id);
+      formData.set("properties[ONPRI商品名]", config.product.productTitle);
+      formData.set("properties[ONPRIブランドID]", config.product.brandId);
+      formData.set("properties[_onpri_brand_id]", config.product.brandId);
+      formData.set("properties[ONPRI設定ID]", setting.id);
+      formData.set("properties[ONPRIカスタマイズ種別]", "名入れ");
+      formData.set("properties[ONPRI名入れテキスト]", getCurrentTextValue());
+      formData.set("properties[ONPRI名入れフォントカラー]", normalizedOptions.fontColor);
+      formData.set("properties[ONPRI名入れフォント種類]", normalizedOptions.fontFamily);
+      formData.set("properties[ONPRI名入れ位置X]", formatCustomizerNumber(state.positionX));
+      formData.set("properties[ONPRI名入れ位置Y]", formatCustomizerNumber(state.positionY));
+      formData.set("properties[ONPRI名入れ拡大率]", formatCustomizerNumber(state.scale));
+    }
+
     function refreshTextPropertiesBeforeCartAdd() {
       applyTextSelectionToProductForm(
         container,
@@ -2047,6 +2069,11 @@
         form.addEventListener("submit", function () {
           refreshTextPropertiesBeforeCartAdd();
         }, true);
+
+        form.addEventListener("formdata", function (event) {
+          refreshTextPropertiesBeforeCartAdd();
+          setTextPropertiesToFormData(event.formData);
+        });
       }
 
       form.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (button) {
