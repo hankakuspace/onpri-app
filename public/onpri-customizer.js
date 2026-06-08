@@ -2288,6 +2288,48 @@
       });
     });
 
+    if (!container.__onpriTextDocumentClickCartAddInstalled) {
+      container.__onpriTextDocumentClickCartAddInstalled = true;
+
+      document.addEventListener("click", function (event) {
+        var target = event.target;
+
+        if (!target || !target.closest) {
+          return;
+        }
+
+        var submitButton = target.closest("button[type='submit'], input[type='submit']");
+
+        if (!submitButton) {
+          return;
+        }
+
+        var form = submitButton.closest("form");
+
+        if (!form || !form.matches || !form.matches("form[action*='/cart/add']")) {
+          return;
+        }
+
+        refreshTextPropertiesBeforeCartAdd();
+
+        if (
+          !window.__onpriLatestTextCartProperties ||
+          !window.__onpriLatestTextCartProperties["ONPRI名入れテキスト"]
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (event.stopImmediatePropagation) {
+          event.stopImmediatePropagation();
+        }
+
+        submitTextCustomizationCartAdd(form);
+      }, true);
+    }
+
     wrapper.appendChild(label);
     wrapper.appendChild(input);
     wrapper.appendChild(controls);
