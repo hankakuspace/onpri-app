@@ -2026,27 +2026,59 @@
       }
     }
 
+    function refreshTextPropertiesBeforeCartAdd() {
+      applyTextSelectionToProductForm(
+        container,
+        config,
+        setting,
+        getCurrentTextValue(),
+        getCurrentOptions()
+      );
+    }
+
     input.addEventListener("input", refreshTextCustomization);
     fontColorSelect.select.addEventListener("change", refreshTextCustomization);
     fontFamilySelect.select.addEventListener("change", refreshTextCustomization);
 
     findProductForms(container).forEach(function (form) {
-      if (form.__onpriTextSubmitRefreshInstalled) {
-        return;
+      if (!form.__onpriTextSubmitRefreshInstalled) {
+        form.__onpriTextSubmitRefreshInstalled = true;
+
+        form.addEventListener("submit", function () {
+          refreshTextPropertiesBeforeCartAdd();
+        }, true);
       }
 
-      form.__onpriTextSubmitRefreshInstalled = true;
+      form.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (button) {
+        if (button.__onpriTextClickRefreshInstalled) {
+          return;
+        }
 
-      form.addEventListener("submit", function () {
-        applyTextSelectionToProductForm(
-          container,
-          config,
-          setting,
-          getCurrentTextValue(),
-          getCurrentOptions()
-        );
-      }, true);
+        button.__onpriTextClickRefreshInstalled = true;
+
+        button.addEventListener("pointerdown", function () {
+          refreshTextPropertiesBeforeCartAdd();
+        }, true);
+
+        button.addEventListener("click", function () {
+          refreshTextPropertiesBeforeCartAdd();
+        }, true);
+      });
     });
+
+    if (!container.__onpriTextDocumentSubmitRefreshInstalled) {
+      container.__onpriTextDocumentSubmitRefreshInstalled = true;
+
+      document.addEventListener("submit", function (event) {
+        var form = event.target;
+
+        if (!form || !form.matches || !form.matches("form[action*='/cart/add']")) {
+          return;
+        }
+
+        refreshTextPropertiesBeforeCartAdd();
+      }, true);
+    }
 
     wrapper.appendChild(label);
     wrapper.appendChild(input);
