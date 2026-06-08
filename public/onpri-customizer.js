@@ -52,6 +52,81 @@
     input.value = value;
   }
 
+  function setOnpriPropertiesToBody(body, properties) {
+    if (!body || !properties) {
+      return body;
+    }
+
+    if (body instanceof FormData || body instanceof URLSearchParams) {
+      Object.keys(properties).forEach(function (key) {
+        body.set("properties[" + key + "]", properties[key]);
+      });
+
+      return body;
+    }
+
+    if (typeof body === "string") {
+      try {
+        var parsed = JSON.parse(body);
+        parsed.properties = parsed.properties || {};
+
+        Object.keys(properties).forEach(function (key) {
+          parsed.properties[key] = properties[key];
+        });
+
+        return JSON.stringify(parsed);
+      } catch (error) {
+        return body;
+      }
+    }
+
+    return body;
+  }
+
+  function installOnpriCartAddFetchPatch() {
+    if (window.__onpriCartAddFetchPatchInstalled || !window.fetch) {
+      return;
+    }
+
+    window.__onpriCartAddFetchPatchInstalled = true;
+
+    var originalFetch = window.fetch;
+
+    window.fetch = function (input, init) {
+      var url = "";
+      var options = init;
+
+      try {
+        if (typeof input === "string") {
+          url = input;
+        } else if (input && input.url) {
+          url = input.url;
+        }
+
+        if (
+          url &&
+          url.indexOf("/cart/add") !== -1 &&
+          window.__onpriLatestTextCartProperties
+        ) {
+          options = options ? Object.assign({}, options) : {};
+
+          if (options.body) {
+            options.body = setOnpriPropertiesToBody(
+              options.body,
+              window.__onpriLatestTextCartProperties
+            );
+          }
+        }
+      } catch (error) {
+        return originalFetch.apply(this, arguments);
+      }
+
+      return originalFetch.call(this, input, options);
+    };
+  }
+
+  installOnpriCartAddFetchPatch();
+
   function clearCustomizerProperties(form) {
     var inputs = form.querySelectorAll("[data-onpri-customizer-property='true']");
 
@@ -1734,6 +1809,21 @@
 
     var normalizedOptions = normalizeTextCustomizerOptions(options);
     var state = clampTextCustomizerState(getTextCustomizerState(container));
+
+    window.__onpriLatestTextCartProperties = {
+      "ONPRI商品設定ID": config.product.id,
+      "ONPRI商品名": config.product.productTitle,
+      "ONPRIブランドID": config.product.brandId,
+      "_onpri_brand_id": config.product.brandId,
+      "ONPRI設定ID": setting.id,
+      "ONPRIカスタマイズ種別": "名入れ",
+      "ONPRI名入れテキスト": textValue,
+      "ONPRI名入れフォントカラー": normalizedOptions.fontColor,
+      "ONPRI名入れフォント種類": normalizedOptions.fontFamily,
+      "ONPRI名入れ位置X": formatCustomizerNumber(state.positionX),
+      "ONPRI名入れ位置Y": formatCustomizerNumber(state.positionY),
+      "ONPRI名入れ拡大率": formatCustomizerNumber(state.scale),
+    };
 
     forms.forEach(function (form) {
       clearCustomizerProperties(form);
