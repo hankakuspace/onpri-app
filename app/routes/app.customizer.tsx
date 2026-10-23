@@ -9,6 +9,7 @@ import {
   createCustomizerProduct,
   createCustomizerProductSetting,
   getCustomizerData,
+  isValidCustomizerShop,
   saveCustomizerProductImageAssignments,
 } from "../lib/customizer.server";
 import { authenticate } from "../shopify.server";
@@ -55,7 +56,12 @@ type ShopifyProductsGraphqlResponse = {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  const customizerData = await getCustomizerData();
+  const shop = session?.shop;
+  if (!isValidCustomizerShop(shop)) {
+    throw new Response("認証済みストアを確認できません。", { status: 403 });
+  }
+
+  const customizerData = await getCustomizerData(shop);
   const productsResponse = await admin.graphql(
     `#graphql
       query OnpriCustomizerProducts {
@@ -101,7 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return {
     ...customizerData,
-    shop: session.shop,
+    shop,
     shopifyProducts,
   };
 };
@@ -109,7 +115,39 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
+  const shop = session?.shop;
+  if (!isValidCustomizerShop(shop)) {
+    return { ok: false, message: "認証済みストアを確認できません。" };
+  }
+
   const formData = await request.formData();
+  if (formData.getAll("shop").some((value) => typeof value !== "string" || value !== shop)) {
+    return { ok: false, message: "認証済みストアと指定されたストアが一致しません。" };
+  }
+
+  // Resolve the product using this session's Admin API before any Firestore write.
+  async function verifyShopifyProduct(productId: string): Promise<boolean> {
+    const id = /^\d+$/.test(productId) ? `gid://shopify/Product/${productId}` : productId;
+    if (!/^gid:\/\/shopify\/Product\/\d+$/.test(id)) return false;
+    try {
+      const response = await admin.graphql(
+        `#graphql
+          query OnpriVerifyCustomizerProduct($id: ID!) {
+            product(id: $id) { id }
+          }
+        `,
+        { variables: { id } },
+      );
+      const result = await response.json() as {
+        errors?: unknown[];
+        data?: { product?: { id?: string } | null };
+      };
+      return response.ok && !result.errors?.length && result.data?.product?.id === id;
+    } catch {
+      return false;
+    }
+  }
+
   const intent = String(formData.get("intent") ?? "");
 
   if (intent === "create-customizer-image") {
@@ -141,7 +179,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "save-shopify-product-images") {
-    const productId = String(formData.get("productId") ?? "");
+    const productId = String(formData.get("productId") ?? "").trim();
     const productTitle = String(formData.get("productTitle") ?? "");
     const productHandle = String(formData.get("productHandle") ?? "");
     const productVendor = String(formData.get("productVendor") ?? "");
@@ -150,8 +188,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const customizationType = String(formData.get("customizationType") ?? "registered_image");
     const imageIds = formData.getAll("imageIds").map((imageId) => String(imageId));
 
+    if (!(await verifyShopifyProduct(productId))) {
+      return { ok: false, message: "現在のストアの商品を確認できません。" };
+    }
+
     const result = await saveCustomizerProductImageAssignments({
-      shop: session.shop,
+      shop,
       productId,
       productTitle,
       productHandle,
@@ -160,7 +202,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       customizerProductId,
       customizationType,
       imageIds,
-    });
+    }, shop);
 
     if (!result.ok) {
       return result;
@@ -214,14 +256,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "create-customizer-product") {
+    const productId = String(formData.get("productId") ?? "").trim();
+    // An unlinked customizer product may still be created with an empty productId.
+    if (productId && !(await verifyShopifyProduct(productId))) {
+      return { ok: false, message: "現在のストアの商品を確認できません。" };
+    }
     const result = await createCustomizerProduct({
       id: String(formData.get("id") ?? ""),
-      shop: String(formData.get("shop") ?? ""),
-      productId: String(formData.get("productId") ?? ""),
+      shop,
+      productId,
       productTitle: String(formData.get("productTitle") ?? ""),
       brandId: String(formData.get("brandId") ?? ""),
       status: String(formData.get("status") ?? ""),
-    });
+    }, shop);
 
     if (!result.ok) {
       return result;
@@ -242,7 +289,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       label: String(formData.get("label") ?? ""),
       inputType: String(formData.get("inputType") ?? ""),
       status: String(formData.get("status") ?? ""),
-    });
+    }, shop);
 
     if (!result.ok) {
       return result;

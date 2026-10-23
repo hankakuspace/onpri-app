@@ -1,5 +1,6 @@
 // app/lib/customizer.server.ts
 import { randomUUID } from "node:crypto";
+import type { Firestore, QueryDocumentSnapshot, Transaction } from "firebase-admin/firestore";
 import { getFirebaseDb, getFirebaseStorageBucket } from "./firebase.server";
 
 export type CustomizerImage = {
@@ -153,6 +154,50 @@ export type StorefrontCustomizerConfig = {
   source: CustomizerDataSource;
 };
 
+// Only the authenticated session may supply this shop; never use a form value.
+export function isValidCustomizerShop(shop: unknown): shop is string {
+  return typeof shop === "string" &&
+    /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.myshopify\.com$/.test(shop);
+}
+
+function isDocumentId(id: string): boolean {
+  return !!id && id !== "." && id !== ".." && !id.includes("/") &&
+    Buffer.byteLength(id, "utf8") <= 1500;
+}
+
+async function requireOwnedProduct(
+  transaction: Transaction,
+  db: Firestore,
+  productId: string,
+  shop: string,
+) {
+  if (!isDocumentId(productId)) throw new Error("Invalid parent product");
+  const product = await transaction.get(db.collection("customizer_products").doc(productId));
+  if (!product.exists || product.data()?.shop !== shop) {
+    throw new Error("Product ownership could not be verified");
+  }
+  return product;
+}
+
+// Keep createdAt descending / document ID descending and the existing 50-row limit.
+// Sorting after an equality query avoids requiring a new composite index.
+function recentDocuments(docs: QueryDocumentSnapshot[]): QueryDocumentSnapshot[] {
+  return docs.filter((doc) => doc.data().createdAt !== undefined).sort((a, b) => {
+    const left = a.data().createdAt;
+    const right = b.data().createdAt;
+    const byId = Buffer.compare(Buffer.from(b.id), Buffer.from(a.id));
+    if (left === null || right === null) {
+      return left === right ? byId : left === null ? 1 : -1;
+    }
+    const seconds = (value: typeof left) => value instanceof Date
+      ? Math.floor(value.getTime() / 1000) : Number(value.seconds ?? 0);
+    const nanos = (value: typeof left) => value instanceof Date
+      ? (value.getTime() % 1000) * 1000000 : Number(value.nanoseconds ?? 0);
+    return seconds(right) - seconds(left) || nanos(right) - nanos(left) ||
+      byId;
+  }).slice(0, 50);
+}
+
 export async function getCustomizerImages(): Promise<CustomizerImage[]> {
   const db = getFirebaseDb();
 
@@ -182,68 +227,80 @@ export async function getCustomizerImages(): Promise<CustomizerImage[]> {
         status: String(data.status ?? ""),
       };
     });
-  } catch (error) {
-    console.error("Failed to fetch customizer_images from Firestore:", error);
+  } catch {
+    console.error("Failed to fetch customizer_images from Firestore:");
     return fallbackImages;
   }
 }
 
-export async function getCustomizerProducts(): Promise<CustomizerProduct[]> {
+function mapCustomizerProducts(docs: QueryDocumentSnapshot[]): CustomizerProduct[] {
+  return recentDocuments(docs).map((doc) => {
+    const data = doc.data();
+
+    return {
+      id: doc.id,
+      shop: String(data.shop ?? ""),
+      productId: String(data.productId ?? ""),
+      productTitle: String(data.productTitle ?? ""),
+      brandId: String(data.brandId ?? ""),
+      status: String(data.status ?? ""),
+    };
+  });
+}
+
+export async function getCustomizerProducts(shop: string): Promise<CustomizerProduct[]> {
+  if (!isValidCustomizerShop(shop)) throw new Error("Invalid authenticated shop");
   const db = getFirebaseDb();
 
   if (!db) {
-    return fallbackProducts;
+    return fallbackProducts.filter((product) => product.shop === shop);
   }
 
   try {
     const snapshot = await db
       .collection("customizer_products")
-      .orderBy("createdAt", "desc")
-      .limit(50)
+      .where("shop", "==", shop)
       .get();
 
     if (snapshot.empty) {
-      return fallbackProducts;
+      return fallbackProducts.filter((product) => product.shop === shop);
     }
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-
-      return {
-        id: doc.id,
-        shop: String(data.shop ?? ""),
-        productId: String(data.productId ?? ""),
-        productTitle: String(data.productTitle ?? ""),
-        brandId: String(data.brandId ?? ""),
-        status: String(data.status ?? ""),
-      };
-    });
-  } catch (error) {
-    console.error("Failed to fetch customizer_products from Firestore:", error);
-    return fallbackProducts;
+    return mapCustomizerProducts(snapshot.docs);
+  } catch {
+    console.error("Failed to fetch customizer_products from Firestore:");
+    return fallbackProducts.filter((product) => product.shop === shop);
   }
 }
 
 
-export async function getCustomizerSettings(): Promise<CustomizerProductSetting[]> {
+async function getCustomizerLists(shop: string): Promise<Pick<CustomizerDataResult, "products" | "settings">> {
+  if (!isValidCustomizerShop(shop)) throw new Error("Invalid authenticated shop");
   const db = getFirebaseDb();
+  let products = fallbackProducts.filter((product) => product.shop === shop);
+  const fallback = fallbackSettings.filter((setting) =>
+    fallbackProducts.some((product) => product.id === setting.productId && product.shop === shop));
 
   if (!db) {
-    return fallbackSettings;
+    return { products, settings: fallback };
   }
 
   try {
-    const snapshot = await db
-      .collection("customizer_product_settings")
-      .orderBy("createdAt", "desc")
-      .limit(50)
-      .get();
+    // Read parents and settings from one consistent snapshot, including parents
+    // outside the product list's display limit. Images remain shared.
+    const docs = await db.runTransaction(async (transaction) => {
+      const parents = await transaction.get(db.collection("customizer_products").where("shop", "==", shop));
+      if (!parents.empty) products = mapCustomizerProducts(parents.docs);
+      const settings = await Promise.all(parents.docs.map((parent) =>
+        transaction.get(db.collection("customizer_product_settings").where("productId", "==", parent.id))));
+      return settings.flatMap((snapshot) => snapshot.docs);
+    }, { readOnly: true });
 
-    if (snapshot.empty) {
-      return fallbackSettings;
+    if (docs.length === 0) {
+      return { products, settings: fallback };
     }
 
-    return snapshot.docs.map((doc) => {
+    const settings = recentDocuments(docs).map((doc) => {
       const data = doc.data();
 
       return {
@@ -256,28 +313,34 @@ export async function getCustomizerSettings(): Promise<CustomizerProductSetting[
         status: String(data.status ?? ""),
       };
     });
-  } catch (error) {
-    console.error("Failed to fetch customizer_product_settings from Firestore:", error);
-    return fallbackSettings;
+    return { products, settings };
+  } catch {
+    console.error("Failed to fetch customizer_product_settings from Firestore:");
+    return { products, settings: fallback };
   }
 }
 
-export async function getCustomizerData(): Promise<CustomizerDataResult> {
+export async function getCustomizerSettings(shop: string): Promise<CustomizerProductSetting[]> {
+  return (await getCustomizerLists(shop)).settings;
+}
+
+export async function getCustomizerData(shop: string): Promise<CustomizerDataResult> {
+  if (!isValidCustomizerShop(shop)) throw new Error("Invalid authenticated shop");
   const db = getFirebaseDb();
 
   if (!db) {
     return {
       images: fallbackImages,
-      products: fallbackProducts,
-      settings: fallbackSettings,
+      products: fallbackProducts.filter((product) => product.shop === shop),
+      settings: fallbackSettings.filter((setting) =>
+        fallbackProducts.some((product) => product.id === setting.productId && product.shop === shop)),
       source: "fallback",
     };
   }
 
-  const [images, products, settings] = await Promise.all([
+  const [images, { products, settings }] = await Promise.all([
     getCustomizerImages(),
-    getCustomizerProducts(),
-    getCustomizerSettings(),
+    getCustomizerLists(shop),
   ]);
 
   return {
@@ -362,8 +425,8 @@ export async function createCustomizerImageUpload(
     });
 
     return { ok: true };
-  } catch (error) {
-    console.error("Failed to upload customizer_image to Firebase Storage:", error);
+  } catch {
+    console.error("Failed to upload customizer_image to Firebase Storage:");
 
     return {
       ok: false,
@@ -411,8 +474,8 @@ export async function createCustomizerImage(
     );
 
     return { ok: true };
-  } catch (error) {
-    console.error("Failed to create customizer_image in Firestore:", error);
+  } catch {
+    console.error("Failed to create customizer_image in Firestore:");
 
     return {
       ok: false,
@@ -423,6 +486,7 @@ export async function createCustomizerImage(
 
 export async function createCustomizerProduct(
   input: CreateCustomizerProductInput,
+  authenticatedShop: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const db = getFirebaseDb();
 
@@ -434,13 +498,13 @@ export async function createCustomizerProduct(
   }
 
   const id = input.id.trim();
-  const shop = input.shop.trim();
+  const shop = authenticatedShop;
   const productId = input.productId.trim();
   const productTitle = input.productTitle.trim();
   const brandId = input.brandId.trim();
   const status = input.status.trim();
 
-  if (!id || !shop || !productTitle || !brandId || !status) {
+  if (!isDocumentId(id) || !isValidCustomizerShop(shop) || input.shop !== shop || !productTitle || !brandId || !status) {
     return {
       ok: false,
       message: "ID、ストア、商品名、ブランドID、状態は必須です。",
@@ -448,22 +512,34 @@ export async function createCustomizerProduct(
   }
 
   try {
-    await db.collection("customizer_products").doc(id).set(
-      {
-        shop,
-        productId,
-        productTitle,
-        brandId,
-        status,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      },
-      { merge: true },
-    );
+    await db.runTransaction(async (transaction) => {
+      const ref = db.collection("customizer_products").doc(id);
+      const existing = await transaction.get(ref);
+      if (existing.exists && existing.data()?.shop !== shop) {
+        throw new Error("Product ownership could not be verified");
+      }
+      if (!existing.exists) {
+        const settings = await transaction.get(db.collection("customizer_product_settings")
+          .where("productId", "==", id));
+        if (!settings.empty) throw new Error("Setting ownership could not be verified");
+      }
+      transaction.set(ref,
+        {
+          shop,
+          productId,
+          productTitle,
+          brandId,
+          status,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        },
+        { merge: true },
+      );
+    });
 
     return { ok: true };
-  } catch (error) {
-    console.error("Failed to create customizer_product in Firestore:", error);
+  } catch {
+    console.error("Failed to create customizer_product in Firestore:");
 
     return {
       ok: false,
@@ -474,6 +550,7 @@ export async function createCustomizerProduct(
 
 export async function createCustomizerProductSetting(
   input: CreateCustomizerProductSettingInput,
+  shop: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const db = getFirebaseDb();
 
@@ -492,7 +569,7 @@ export async function createCustomizerProductSetting(
   const inputType = input.inputType.trim();
   const status = input.status.trim();
 
-  if (!id || !productSettingId || !productId || !imageId || !label || !inputType || !status) {
+  if (!isDocumentId(id) || !isDocumentId(productId) || !isValidCustomizerShop(shop) || !productSettingId || !imageId || !label || !inputType || !status) {
     return {
       ok: false,
       message: "ID、設定ID、対象商品ID、画像ID、表示名、入力タイプ、状態は必須です。",
@@ -500,23 +577,31 @@ export async function createCustomizerProductSetting(
   }
 
   try {
-    await db.collection("customizer_product_settings").doc(id).set(
-      {
-        productSettingId,
-        productId,
-        imageId,
-        label,
-        inputType,
-        status,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      },
-      { merge: true },
-    );
+    await db.runTransaction(async (transaction) => {
+      const ref = db.collection("customizer_product_settings").doc(id);
+      const existing = await transaction.get(ref);
+      await requireOwnedProduct(transaction, db, productId, shop);
+      if (existing.exists) {
+        await requireOwnedProduct(transaction, db, String(existing.data()?.productId ?? ""), shop);
+      }
+      transaction.set(ref,
+        {
+          productSettingId,
+          productId,
+          imageId,
+          label,
+          inputType,
+          status,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        },
+        { merge: true },
+      );
+    });
 
     return { ok: true };
-  } catch (error) {
-    console.error("Failed to create customizer_product_setting in Firestore:", error);
+  } catch {
+    console.error("Failed to create customizer_product_setting in Firestore:");
 
     return {
       ok: false,
@@ -527,6 +612,7 @@ export async function createCustomizerProductSetting(
 
 export async function saveCustomizerProductImageAssignments(
   input: SaveCustomizerProductImageAssignmentsInput,
+  authenticatedShop: string,
 ): Promise<SaveCustomizerProductImageAssignmentsResult> {
   const db = getFirebaseDb();
 
@@ -537,7 +623,7 @@ export async function saveCustomizerProductImageAssignments(
     };
   }
 
-  const shop = input.shop.trim();
+  const shop = authenticatedShop;
   const shopifyProductId = input.productId.trim();
   const productTitle = input.productTitle.trim();
   const productHandle = input.productHandle.trim();
@@ -550,7 +636,7 @@ export async function saveCustomizerProductImageAssignments(
   const customizationType = input.customizationType.trim() || "registered_image";
   const imageIds = Array.from(new Set(input.imageIds.map((imageId) => imageId.trim()).filter(Boolean)));
 
-  if (!shop || !shopifyProductId || !productTitle || !customizerProductId) {
+  if (!isValidCustomizerShop(shop) || input.shop !== shop || !shopifyProductId || !productTitle || !isDocumentId(customizerProductId) || imageIds.some((id) => !isDocumentId(id))) {
     return {
       ok: false,
       message: "商品情報が不足しています。",
@@ -558,24 +644,54 @@ export async function saveCustomizerProductImageAssignments(
   }
 
   try {
-    const existingProductDoc = await db
-      .collection("customizer_products")
-      .doc(customizerProductId)
-      .get();
+    await db.runTransaction(async (transaction) => {
+      const productRef = db.collection("customizer_products").doc(customizerProductId);
+      const existingProductDoc = await transaction.get(productRef);
+      const existingProductData = existingProductDoc.data() ?? {};
+      if (existingProductDoc.exists && existingProductData.shop !== shop) {
+        throw new Error("Product ownership could not be verified");
+      }
 
-    const existingProductData = existingProductDoc.exists
-      ? existingProductDoc.data() ?? {}
-      : {};
+      const existingSettings = await transaction.get(db.collection("customizer_product_settings")
+        .where("productId", "==", customizerProductId));
+      // Orphan settings cannot be claimed by creating a new parent with the same ID.
+      if (!existingProductDoc.exists && !existingSettings.empty) {
+        throw new Error("Setting ownership could not be verified");
+      }
+      const assignments = customizationType === "text"
+        ? [{ imageId: "text-01", label: "名入れ", inputType: "text" }]
+        : await Promise.all(imageIds.map(async (imageId) => {
+            const image = await transaction.get(db.collection("customizer_images").doc(imageId));
+            return { imageId, label: String(image.data()?.name ?? imageId), inputType: "registered_image" };
+          }));
 
-    const brandId =
-      productBrandId ||
-      String(existingProductData.brandId ?? "").trim() ||
-      normalizeCustomizerId(productVendor) ||
-      normalizeCustomizerId(productHandle) ||
-      "default";
+      // Distinct image IDs can normalize to the same setting ID. Reject the
+      // entire request before writes rather than letting the last assignment win.
+      const plannedIds = new Set<string>();
+      for (const assignment of assignments) {
+        const settingId = createSettingId(customizerProductId, assignment.imageId);
+        if (plannedIds.has(settingId)) throw new Error("Setting ID collision");
+        plannedIds.add(settingId);
+      }
 
-    await db.collection("customizer_products").doc(customizerProductId).set(
-      {
+      // Ownership alone is insufficient: an existing ID must describe exactly
+      // this parent and image. Missing identifiers must never be inferred.
+      for (const assignment of assignments) {
+        const ref = db.collection("customizer_product_settings")
+          .doc(createSettingId(customizerProductId, assignment.imageId));
+        const existing = await transaction.get(ref);
+        if (existing.exists) {
+          const data = existing.data();
+          if (data?.productId !== customizerProductId || data.imageId !== assignment.imageId) {
+            throw new Error("Setting ID collision or unknown assignment");
+          }
+          await requireOwnedProduct(transaction, db, data.productId, shop);
+        }
+      }
+
+      const brandId = productBrandId || String(existingProductData.brandId ?? "").trim() ||
+        normalizeCustomizerId(productVendor) || normalizeCustomizerId(productHandle) || "default";
+      transaction.set(productRef, {
         shop,
         productId: shopifyProductId,
         productTitle,
@@ -584,73 +700,33 @@ export async function saveCustomizerProductImageAssignments(
         status: "有効",
         updatedAt: new Date(),
         createdAt: existingProductData.createdAt ?? new Date(),
-      },
-      { merge: true },
-    );
+      }, { merge: true });
 
-    const existingSettingsSnapshot = await db
-      .collection("customizer_product_settings")
-      .where("productId", "==", customizerProductId)
-      .get();
-
-    const batch = db.batch();
-
-    existingSettingsSnapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const inputType = String(data.inputType ?? "");
-
-      if (inputType === "registered_image" || inputType === "text") {
-        batch.delete(doc.ref);
-      }
-    });
-
-    if (customizationType === "text") {
-      batch.set(
-        db.collection("customizer_product_settings").doc(createSettingId(customizerProductId, "text-01")),
-        {
+      existingSettings.docs.forEach((doc) => {
+        const inputType = String(doc.data().inputType ?? "");
+        if (inputType === "registered_image" || inputType === "text") transaction.delete(doc.ref);
+      });
+      for (const assignment of assignments) {
+        transaction.set(db.collection("customizer_product_settings")
+          .doc(createSettingId(customizerProductId, assignment.imageId)), {
           productSettingId: customizerProductId,
           productId: customizerProductId,
-          imageId: "text-01",
-          label: "名入れ",
-          inputType: "text",
+          imageId: assignment.imageId,
+          label: assignment.label,
+          inputType: assignment.inputType,
           status: "有効",
           updatedAt: new Date(),
           createdAt: new Date(),
-        },
-        { merge: true },
-      );
-    } else {
-      for (const imageId of imageIds) {
-        const imageDoc = await db.collection("customizer_images").doc(imageId).get();
-        const imageData = imageDoc.exists ? imageDoc.data() ?? {} : {};
-        const label = String(imageData.name ?? imageId);
-        const settingId = createSettingId(customizerProductId, imageId);
-
-        batch.set(
-          db.collection("customizer_product_settings").doc(settingId),
-          {
-            productSettingId: customizerProductId,
-            productId: customizerProductId,
-            imageId,
-            label,
-            inputType: "registered_image",
-            status: "有効",
-            updatedAt: new Date(),
-            createdAt: new Date(),
-          },
-          { merge: true },
-        );
+        }, { merge: true });
       }
-    }
-
-    await batch.commit();
+    });
 
     return {
       ok: true,
       customizerProductId,
     };
-  } catch (error) {
-    console.error("Failed to save customizer product image assignments:", error);
+  } catch {
+    console.error("Failed to save customizer product image assignments:");
 
     return {
       ok: false,
@@ -765,8 +841,8 @@ export async function getStorefrontCustomizerConfig(
       settings,
       source: "firestore",
     };
-  } catch (error) {
-    console.error("Failed to fetch storefront customizer config:", error);
+  } catch {
+    console.error("Failed to fetch storefront customizer config:");
 
     return {
       product: null,
